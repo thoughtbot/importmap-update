@@ -46,7 +46,7 @@ module Importmap
 
       def push(branch:, force: false)
         argv = ["git", "push", "origin", "#{branch}:#{branch}"]
-        argv.push("--force-with-lease") if force
+        argv.push("--force") if force
         @runner.run!(*argv)
         nil
       end

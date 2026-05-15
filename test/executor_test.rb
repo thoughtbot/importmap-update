@@ -150,7 +150,7 @@ class ExecutorTest < Minitest::Test
     # Git operations: checkout fresh, commit, push.
     assert_equal [{branch: "importmap-updates/patch", base: "main"}], @git.checkouts
     assert_equal 1, @git.commits.size
-    assert_equal [{branch: "importmap-updates/patch", force: false}], @git.pushes
+    assert_equal [{branch: "importmap-updates/patch", force: true}], @git.pushes
 
     # gh create_pr called with planner-provided title and rendered body.
     assert_equal 1, @gh.created.size
