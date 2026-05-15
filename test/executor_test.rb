@@ -26,6 +26,9 @@ class ExecutorTest < Minitest::Test
       @next_pr_number = 1000
     end
 
+    def ensure_labels(labels)
+    end
+
     def create_pr(branch:, base:, title:, body:, labels: [])
       @created << {branch: branch, base: base, title: title, body: body, labels: labels}
       n = @next_pr_number

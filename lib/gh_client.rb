@@ -65,6 +65,23 @@ module Importmap
         result.stdout.strip[%r{/pull/(\d+)}, 1]&.to_i
       end
 
+      # Ensures every label in +labels+ exists in the repo, creating any that
+      # are missing. Called once before opening PRs so that `create_pr` never
+      # fails with "label does not exist". Missing labels are created with a
+      # neutral default color; existing labels are left untouched.
+      def ensure_labels(labels)
+        return if labels.empty?
+        existing = list_label_names
+        labels.each do |label|
+          next if existing.include?(label)
+          @runner.run(
+            "gh", "label", "create", label,
+            "--repo", @repo,
+            "--color", "0075ca"
+          )
+        end
+      end
+
       # Edits an existing PR's title and body. Used after force-pushing a
       # changed branch — the body must be re-rendered so the metadata
       # block reflects the new package set.
@@ -97,6 +114,19 @@ module Importmap
       end
 
       private
+
+      def list_label_names
+        result = @runner.run(
+          "gh", "label", "list",
+          "--repo", @repo,
+          "--json", "name",
+          "--limit", "200"
+        )
+        return [] unless result.success?
+        JSON.parse(result.stdout.force_encoding("UTF-8")).map { |l| l["name"] }
+      rescue JSON::ParserError
+        []
+      end
 
       def parse_pr_list(stdout, branch_prefix)
         parsed = JSON.parse(stdout.force_encoding("UTF-8"))
