@@ -11,7 +11,7 @@ inputs:
     required: false
     default: ".github/importmap-updates.yml"
   github-token:
-    description: "Token used by gh to list, open, edit, and close PRs. Pass ${{ secrets.GITHUB_TOKEN }}."
+    description: "Token used by gh to list, open, edit, and close PRs."
     required: true
   base-branch:
     description: "Branch to base PRs against."
