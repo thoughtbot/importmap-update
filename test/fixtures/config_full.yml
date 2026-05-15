@@ -1,0 +1,21 @@
+version: 1
+
+grouping:
+  security:
+    strategy: individual
+  patch:
+    strategy: grouped
+  minor:
+    strategy: grouped
+  major:
+    strategy: individual
+
+open_pull_requests_limit: 5
+labels:
+  - deps
+  - js
+reviewers:
+  - thoughtbot/web
+commit_message:
+  prefix: "chore(js-deps)"
+branch_prefix: "js-deps"

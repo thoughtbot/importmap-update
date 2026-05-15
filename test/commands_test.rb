@@ -1,0 +1,128 @@
+# frozen_string_literal: true
+
+require_relative "test_helper"
+require "commands"
+
+class CommandsTest < Minitest::Test
+  Commands = Importmap::Update::Commands
+
+  # ---- ShellRunner ----
+
+  def test_shell_runner_captures_stdout
+    result = Commands::ShellRunner.new.run("echo", "hello world")
+    assert_equal "hello world\n", result.stdout
+    assert_predicate result, :success?
+    assert_equal 0, result.exit_code
+  end
+
+  def test_shell_runner_captures_stderr_and_failure
+    # `sh -c` lets us write to stderr cleanly without depending on a
+    # specific binary's behavior.
+    result = Commands::ShellRunner.new.run("sh", "-c", "echo oops 1>&2; exit 3")
+    assert_equal "oops\n", result.stderr
+    assert_equal 3, result.exit_code
+    refute_predicate result, :success?
+  end
+
+  def test_shell_runner_bang_raises_on_non_zero_exit
+    err = assert_raises(Commands::CommandError) do
+      Commands::ShellRunner.new.run!("sh", "-c", "echo nope 1>&2; exit 1")
+    end
+    assert_equal 1, err.result.exit_code
+    assert_includes err.message, "exited 1"
+    assert_includes err.message, "nope"
+  end
+
+  def test_shell_runner_argv_is_safe_from_shell_metacharacters
+    # argv-style invocation must not interpret `;` as a command separator.
+    # If it did, this test would attempt to delete a file.
+    result = Commands::ShellRunner.new.run("echo", "a; rm -rf /b")
+    assert_equal "a; rm -rf /b\n", result.stdout
+  end
+
+  # ---- FixtureRunner: literal matching ----
+
+  def test_fixture_runner_returns_recorded_result_for_exact_argv_match
+    runner = Commands::FixtureRunner.new
+    runner.add(
+      pattern: ["gh", "pr", "list", "--state", "open"],
+      stdout: "[]\n"
+    )
+    result = runner.run("gh", "pr", "list", "--state", "open")
+    assert_equal "[]\n", result.stdout
+    assert_predicate result, :success?
+  end
+
+  def test_fixture_runner_records_calls_in_order
+    runner = Commands::FixtureRunner.new
+    runner.add(pattern: ["gh", "auth", "status"], stdout: "ok\n")
+    runner.add(pattern: ["echo", "hi"], stdout: "hi\n")
+    runner.run("gh", "auth", "status")
+    runner.run("echo", "hi")
+    assert_equal [
+      ["gh", "auth", "status"],
+      ["echo", "hi"]
+    ], runner.calls
+  end
+
+  def test_fixture_runner_first_matching_pattern_wins
+    # Order matters: if you register a fallback first, it'll swallow more
+    # specific patterns. This test pins the behavior so callers know to
+    # register specific patterns before general ones.
+    runner = Commands::FixtureRunner.new
+    runner.add(pattern: ["echo", "specific"], stdout: "first\n")
+    runner.add(pattern: ["echo", "specific"], stdout: "second\n")
+    assert_equal "first\n", runner.run("echo", "specific").stdout
+  end
+
+  # ---- FixtureRunner: regex matching ----
+
+  def test_fixture_runner_supports_regex_elements_in_patterns
+    # The branch SHA changes every run; the pattern uses a regex to allow
+    # any 40-char hex SHA in that position.
+    runner = Commands::FixtureRunner.new
+    runner.add(
+      pattern: ["git", "rev-parse", /\A[0-9a-f]{7,40}\z/],
+      stdout: "ok\n"
+    )
+    assert_equal "ok\n", runner.run("git", "rev-parse", "abcdef1234567").stdout
+  end
+
+  def test_fixture_runner_regex_must_match_exactly_at_position
+    runner = Commands::FixtureRunner.new
+    runner.add(pattern: ["git", "checkout", /\Aupdates\//], stdout: "ok\n")
+    err = assert_raises(RuntimeError) do
+      runner.run("git", "checkout", "main")
+    end
+    assert_match(/No fixture matched/, err.message)
+  end
+
+  # ---- FixtureRunner: misses and errors ----
+
+  def test_fixture_runner_raises_clearly_when_no_pattern_matches
+    runner = Commands::FixtureRunner.new
+    runner.add(pattern: ["gh", "pr", "view"], stdout: "")
+    err = assert_raises(RuntimeError) { runner.run("gh", "pr", "close", "1") }
+    assert_includes err.message, "No fixture matched"
+    assert_includes err.message, "close"
+  end
+
+  def test_fixture_runner_argv_size_mismatch_does_not_match
+    # A 3-element pattern must not match a 4-element call.
+    runner = Commands::FixtureRunner.new
+    runner.add(pattern: ["gh", "pr", "list"], stdout: "ok\n")
+    assert_raises(RuntimeError) { runner.run("gh", "pr", "list", "--json", "number") }
+  end
+
+  def test_fixture_runner_bang_raises_command_error_on_recorded_failure
+    runner = Commands::FixtureRunner.new
+    runner.add(
+      pattern: ["gh", "pr", "create"],
+      stderr: "GraphQL: branch already exists",
+      exit_code: 1
+    )
+    err = assert_raises(Commands::CommandError) { runner.run!("gh", "pr", "create") }
+    assert_equal 1, err.result.exit_code
+    assert_includes err.message, "branch already exists"
+  end
+end

@@ -1,0 +1,6 @@
+version: 1
+
+open-pull-requests-limit: 3
+branch-prefix: "ipm-updates"
+commit-message:
+  prefix: "deps"

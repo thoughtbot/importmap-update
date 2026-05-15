@@ -1,0 +1,5 @@
+| Package            | Severity | Vulnerable versions | Vulnerability                 |
+|--------------------|----------|---------------------|-------------------------------|
+| lodash             | high     | <4.17.21            | Prototype Pollution in lodash |
+| @hotwired/stimulus | moderate | <3.2.2              | ReDoS in stimulus router      |
+ 2 vulnerabilities found: 1 high, 1 moderate

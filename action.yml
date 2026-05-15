@@ -1,0 +1,56 @@
+name: "Importmap Update"
+description: "Dependabot-style automated dependency updates for Rails importmap-rails apps."
+author: "thoughtbot"
+branding:
+  icon: "package"
+  color: "red"
+
+inputs:
+  config-file:
+    description: "Path to the YAML config inside the consuming repo."
+    required: false
+    default: ".github/importmap-updates.yml"
+  github-token:
+    description: "Token used by gh to list, open, edit, and close PRs. Pass ${{ secrets.GITHUB_TOKEN }}."
+    required: true
+  base-branch:
+    description: "Branch to base PRs against."
+    required: false
+    default: "main"
+  dry-run:
+    description: "When 'true', run end-to-end but skip all side effects (no commits, pushes, or PR operations)."
+    required: false
+    default: "false"
+  ruby-version:
+    description: "Ruby version to set up. Defaults to the consuming repo's .ruby-version."
+    required: false
+  author-name:
+    description: "Git author name for commits."
+    required: false
+    default: "github-actions[bot]"
+  author-email:
+    description: "Git author email for commits."
+    required: false
+    default: "github-actions[bot]@users.noreply.github.com"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true
+        ruby-version: ${{ inputs.ruby-version }}
+
+    - name: Run importmap-update
+      shell: bash
+      env:
+        GH_TOKEN:                 ${{ inputs.github-token }}
+        GITHUB_TOKEN:             ${{ inputs.github-token }}
+        GITHUB_REPOSITORY:        ${{ github.repository }}
+        INPUT_CONFIG_FILE:        ${{ inputs.config-file }}
+        IMPORTMAP_BASE_BRANCH:    ${{ inputs.base-branch }}
+        IMPORTMAP_DRY_RUN:        ${{ inputs.dry-run }}
+        IMPORTMAP_AUTHOR_NAME:    ${{ inputs.author-name }}
+        IMPORTMAP_AUTHOR_EMAIL:   ${{ inputs.author-email }}
+      run: ${{ github.action_path }}/exe/importmap-update

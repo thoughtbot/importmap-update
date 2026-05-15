@@ -1,0 +1,5 @@
+| Package    | Current | Latest             |
+|------------|---------|--------------------|
+| lodash     | 4.17.20 | 4.17.21            |
+| broken-pkg | 1.0.0   | Response code: 404 |
+ 2 outdated packages found
