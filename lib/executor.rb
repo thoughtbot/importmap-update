@@ -120,7 +120,7 @@ module Importmap
             detail: "No changes after pinning — packages may already be at latest."
           )
         end
-        @git.push(branch: spec.branch)
+        @git.push(branch: spec.branch, force: true)
         number = @gh.create_pr(
           branch: spec.branch, base: @base,
           title: spec.title, body: @body_renderer.call(spec),
