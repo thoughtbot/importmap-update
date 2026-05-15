@@ -30,7 +30,7 @@ module Importmap
       # if a commit was actually created, false if there was nothing to
       # commit (which usually means `bin/importmap pin` was a no-op).
       def commit_all(message:)
-        @runner.run!("git", "add", "-A")
+        @runner.run!("git", "add", "config/importmap.rb", "vendor/javascript")
         # `git diff --cached --quiet` exits 0 if there are no staged changes.
         diff = @runner.run("git", "diff", "--cached", "--quiet")
         return false if diff.success?
