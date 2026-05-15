@@ -111,6 +111,7 @@ module Importmap
           )
         end
 
+        @gh.ensure_labels(@labels)
         @git.checkout_fresh_branch(branch: spec.branch, base: @base)
         committed = pin_packages_and_commit(spec)
         if !committed

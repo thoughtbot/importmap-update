@@ -115,6 +115,49 @@ class GhClientTest < Minitest::Test
     assert_includes err.message, "auth required"
   end
 
+  # ---- ensure_labels ----
+
+  def test_ensure_labels_is_a_no_op_when_labels_is_empty
+    @client.ensure_labels([])
+    assert_equal 0, @runner.calls.size
+  end
+
+  def test_ensure_labels_creates_missing_labels
+    @runner.add(
+      pattern: ["gh", "label", "list", "--repo", REPO, "--json", "name", "--limit", "200"],
+      stdout: +%([{"name":"dependencies"}])
+    )
+    @runner.add(
+      pattern: ["gh", "label", "create", "javascript", "--repo", REPO, "--color", "0075ca"],
+      stdout: +""
+    )
+    @client.ensure_labels(%w[dependencies javascript])
+    assert_equal 2, @runner.calls.size
+  end
+
+  def test_ensure_labels_skips_labels_that_already_exist
+    @runner.add(
+      pattern: ["gh", "label", "list", "--repo", REPO, "--json", "name", "--limit", "200"],
+      stdout: +%([{"name":"dependencies"},{"name":"javascript"}])
+    )
+    @client.ensure_labels(%w[dependencies javascript])
+    assert_equal 1, @runner.calls.size
+  end
+
+  def test_ensure_labels_tolerates_gh_label_list_failure
+    @runner.add(
+      pattern: ["gh", "label", "list", "--repo", REPO, "--json", "name", "--limit", "200"],
+      stderr: "not found",
+      exit_code: 1
+    )
+    @runner.add(
+      pattern: ["gh", "label", "create", "dependencies", "--repo", REPO, "--color", "0075ca"],
+      stdout: +""
+    )
+    @client.ensure_labels(%w[dependencies])
+    assert_equal 2, @runner.calls.size
+  end
+
   # ---- create_pr ----
 
   def test_create_pr_invokes_gh_with_title_body_branch_and_base
