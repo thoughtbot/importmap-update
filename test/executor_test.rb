@@ -64,7 +64,7 @@ class ExecutorTest < Minitest::Test
       nil
     end
 
-    def commit_all(message:)
+    def commit_changes(message:)
       @commits << message
       @commit_returns
     end
@@ -162,7 +162,7 @@ class ExecutorTest < Minitest::Test
   def test_open_action_skips_pr_creation_when_pinning_produced_no_changes
     # Race condition: the importmap was updated between the planner's read
     # and the executor's run, so `bin/importmap pin` is a no-op. The
-    # `git diff --cached --quiet` step returns true; commit_all returns
+    # `git diff --cached --quiet` step returns true; commit_changes returns
     # false; we abort the open and record a skip.
     s = spec(branch: "importmap-updates/patch", packages: [bump("lodash", "4.17.20", "4.17.21")])
     @runner.add(pattern: ["bin/importmap", "pin", "lodash@4.17.21"], stdout: "pinned\n")
