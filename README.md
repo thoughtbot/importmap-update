@@ -12,7 +12,15 @@ This action fills that gap.
 
 ## Quick start
 
-Add a workflow file:
+For this action to work you must explicitly allow GitHub Actions to create pull
+requests. This setting can be found in a repository's settings under Actions >
+General > Workflow permissions.
+
+Another option is to use a dedicated GitHub token for this action, which can be
+set as a secret in the repository's settings. This token should have the `repo`
+scope enabled.
+
+Then, add a workflow file:
 
 ```yaml
 # .github/workflows/importmap-updates.yml
