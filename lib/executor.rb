@@ -191,7 +191,7 @@ module Importmap
           end
         end
         return false if applied.empty?
-        @git.commit_all(message: commit_message_for(spec))
+        @git.commit_changes(message: commit_message_for(spec))
       end
 
       def commit_message_for(spec)
