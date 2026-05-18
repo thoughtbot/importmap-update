@@ -230,8 +230,11 @@ class ExecutorTest < Minitest::Test
     assert_empty @gh.created
     assert_empty @gh.updated
     assert_empty @gh.closed
-    # All "would have" details should be informative.
     assert(report.outcomes.all? { |o| o.detail.start_with?("DRY RUN") })
+    open_outcome = report.outcomes.find { |o| o.type == :open }
+    fp_outcome = report.outcomes.find { |o| o.type == :force_push }
+    assert_includes open_outcome.detail, "lodash"
+    assert_includes fp_outcome.detail, "stim"
   end
 
   # ---- failure isolation ----

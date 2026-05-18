@@ -1,0 +1,70 @@
+name: Integration test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Create test Rails app
+        run: |
+          gem install rails --no-document
+          rails new /tmp/test-app \
+            --skip-git \
+            --skip-action-mailer \
+            --skip-action-mailbox \
+            --skip-action-text \
+            --skip-active-record \
+            --skip-active-storage \
+            --skip-action-cable \
+            --skip-bootsnap \
+            --skip-test \
+            --quiet
+
+      - name: Pin outdated packages
+        run: |
+          cat >> /tmp/test-app/config/importmap.rb << 'EOF'
+
+          pin "is-svg",     to: "https://cdn.jsdelivr.net/npm/is-svg@3.0.0/index.js"
+          pin "md5",        to: "https://cdn.jsdelivr.net/npm/md5@2.2.0/dist/md5.min.js"
+          pin "local-time", to: "https://cdn.jsdelivr.net/npm/local-time@3.0.2/app/assets/javascripts/local-time.es2017-esm.js"
+          pin "hotkeys-js", to: "https://cdn.jsdelivr.net/npm/hotkeys-js@4.0.3/dist/hotkeys.esm.js"
+          pin "tom-select", to: "https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/esm/tom-select.complete.js"
+          pin "just-extend", to: "https://cdn.jsdelivr.net/npm/just-extend@5.1.1/index.mjs"
+          EOF
+
+      - name: Run in dry-run mode
+        uses: ./
+        env:
+          IMPORTMAP_RUN_LOG: /tmp/dry-run-output.txt
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          dry-run: "true"
+          working-directory: /tmp/test-app
+
+      - name: Assert all outdated packages appear in dry-run output
+        run: |
+          failed=0
+          for pkg in hotkeys-js is-svg just-extend local-time md5 tom-select; do
+            if grep -q "$pkg" /tmp/dry-run-output.txt; then
+              echo "✓ $pkg"
+            else
+              echo "✗ $pkg not found in output"
+              failed=1
+            fi
+          done
+          exit $failed
