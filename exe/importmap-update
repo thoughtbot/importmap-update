@@ -162,7 +162,7 @@ when :run
     exit 2
   end
 
-  runner = Importmap::Update::Commands::ShellRunner.new
+  runner = Importmap::Update::Commands::ShellRunner.new(cwd: ENV.fetch("RAILS_ROOT", "."))
   gh = Importmap::Update::GitHubClient.new(repo: repo, token: token)
   git = Importmap::Update::GitClient.new(
     runner: runner,
