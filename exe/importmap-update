@@ -17,7 +17,7 @@
 #   INPUT_CONFIG_FILE          Path to the YAML config (default
 #                              .github/importmap-updates.yml).
 #   GITHUB_REPOSITORY          OWNER/REPO of the consuming repo.
-#   GITHUB_TOKEN / GH_TOKEN    Auth for gh (the action.yml passes this in).
+#   GITHUB_TOKEN / GH_TOKEN    Auth token passed to Octokit (action.yml passes this in).
 #   IMPORTMAP_BASE_BRANCH      Base branch for PRs (default `main`).
 #   IMPORTMAP_DRY_RUN          Set to "true" for a no-side-effects run.
 #   IMPORTMAP_AUTHOR_NAME      Git author name for commits.
@@ -31,7 +31,7 @@ require "config"
 require "planner"
 require "reconciler"
 require "executor"
-require "gh_client"
+require "github_client"
 require "git_client"
 require "commands"
 require "parsers/outdated_parser"
@@ -156,8 +156,14 @@ when :run
     exit 2
   end
 
+  token = ENV["GITHUB_TOKEN"] || ENV["GH_TOKEN"]
+  if token.nil? || token.empty?
+    warn "GITHUB_TOKEN (or GH_TOKEN) is not set; refusing to run."
+    exit 2
+  end
+
   runner = Importmap::Update::Commands::ShellRunner.new
-  gh = Importmap::Update::GhClient.new(repo: repo, runner: runner)
+  gh = Importmap::Update::GitHubClient.new(repo: repo, token: token)
   git = Importmap::Update::GitClient.new(
     runner: runner,
     author_name: ENV.fetch("IMPORTMAP_AUTHOR_NAME", "github-actions[bot]"),

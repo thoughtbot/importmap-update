@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "commands"
-require_relative "gh_client"
+require_relative "github_client"
 require_relative "git_client"
 require_relative "metadata"
 
