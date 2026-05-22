@@ -105,9 +105,10 @@ module Importmap
       def handle_open(action)
         spec = action.pr_spec
         if @dry_run
+          names = spec.packages.map(&:name).join(", ")
           return Outcome.new(
             type: :open, status: :skipped, branch: spec.branch,
-            detail: "DRY RUN: would open PR for #{spec.packages.size} package(s)."
+            detail: "DRY RUN: would open PR for #{names}."
           )
         end
 
@@ -134,9 +135,10 @@ module Importmap
         existing = action.existing_pr
 
         if @dry_run
+          names = spec.packages.map(&:name).join(", ")
           return Outcome.new(
             type: :force_push, status: :skipped, branch: spec.branch, pr_number: existing.number,
-            detail: "DRY RUN: would force-push (#{action.reason})."
+            detail: "DRY RUN: would force-push #{names} (#{action.reason})."
           )
         end
 

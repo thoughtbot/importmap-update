@@ -32,6 +32,10 @@ inputs:
     description: "Git author email for commits."
     required: false
     default: "github-actions[bot]@users.noreply.github.com"
+  working-directory:
+    description: "Directory containing the Rails app to run against. Useful when the app lives in a subdirectory or for integration testing."
+    required: false
+    default: "."
 
 runs:
   using: "composite"
@@ -44,6 +48,7 @@ runs:
 
     - name: Run importmap-update
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       env:
         GH_TOKEN:                 ${{ inputs.github-token }}
         GITHUB_TOKEN:             ${{ inputs.github-token }}
@@ -53,4 +58,4 @@ runs:
         IMPORTMAP_DRY_RUN:        ${{ inputs.dry-run }}
         IMPORTMAP_AUTHOR_NAME:    ${{ inputs.author-name }}
         IMPORTMAP_AUTHOR_EMAIL:   ${{ inputs.author-email }}
-      run: ${{ github.action_path }}/exe/importmap-update
+      run: ${{ github.action_path }}/exe/importmap-update 2>&1 | tee "${IMPORTMAP_RUN_LOG:-/dev/null}"
