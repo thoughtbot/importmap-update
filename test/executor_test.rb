@@ -30,19 +30,19 @@ class ExecutorTest < Minitest::Test
     end
 
     def create_pr(branch:, base:, title:, body:, labels: [])
-      @created << {branch: branch, base: base, title: title, body: body, labels: labels}
+      @created << {branch:, base:, title:, body:, labels:}
       n = @next_pr_number
       @next_pr_number += 1
       n
     end
 
     def update_pr(number:, title:, body:)
-      @updated << {number: number, title: title, body: body}
+      @updated << {number:, title:, body:}
       nil
     end
 
     def close_pr(number:, comment: nil)
-      @closed << {number: number, comment: comment}
+      @closed << {number:, comment:}
       nil
     end
   end
@@ -60,7 +60,7 @@ class ExecutorTest < Minitest::Test
     end
 
     def checkout_fresh_branch(branch:, base:)
-      @checkouts << {branch: branch, base: base}
+      @checkouts << {branch:, base:}
       nil
     end
 
@@ -70,7 +70,7 @@ class ExecutorTest < Minitest::Test
     end
 
     def push(branch:, force: false)
-      @pushes << {branch: branch, force: force}
+      @pushes << {branch:, force:}
       nil
     end
   end
@@ -78,22 +78,22 @@ class ExecutorTest < Minitest::Test
   # ---- builders mirroring the planner's output ----
 
   def bump(name, from, to, kind: :patch, severity: nil)
-    advisory = severity ? {severity: severity} : nil
-    Planner::PackageBump.new(name: name, from: from, to: to, semver_kind: kind, advisory: advisory)
+    advisory = severity ? {severity:} : nil
+    Planner::PackageBump.new(name:, from:, to:, semver_kind: kind, advisory:)
   end
 
   def spec(branch:, packages:, kind: :patch, title: "spec title")
     Planner::PRSpec.new(
-      kind: kind, packages: packages, branch: branch, title: title,
+      kind:, packages:, branch:, title:,
       metadata: {
-        tool: "importmap-update", kind: kind,
+        tool: "importmap-update", kind:,
         packages: packages.map { |p| {name: p.name, from: p.from, to: p.to, semver_kind: p.semver_kind} }
       }
     )
   end
 
   def existing_pr(number:, branch:)
-    Reconciler::ExistingPR.new(number: number, branch: branch, body: "", title: "old")
+    Reconciler::ExistingPR.new(number:, branch:, body: "", title: "old")
   end
 
   def setup
@@ -108,7 +108,7 @@ class ExecutorTest < Minitest::Test
       base_branch: "main",
       commit_message_prefix: "",
       labels: %w[dependencies],
-      dry_run: dry_run,
+      dry_run:,
       # Override the body renderer so tests don't depend on the exact body string.
       body_renderer: ->(s) { "body for #{s.branch}" }
     )

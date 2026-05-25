@@ -190,7 +190,7 @@ module Importmap
 
       def build_grouped_spec(kind, bumps)
         PRSpec.new(
-          kind: kind,
+          kind:,
           packages: bumps,
           branch: "#{@config.branch_prefix}/#{kind}",
           title: grouped_title(kind, bumps),
@@ -200,7 +200,7 @@ module Importmap
 
       def build_individual_spec(kind, bump)
         PRSpec.new(
-          kind: kind,
+          kind:,
           packages: [bump],
           branch: "#{@config.branch_prefix}/#{kind}-#{sanitize(bump.name)}",
           title: with_prefix("bump #{bump.name} #{bump.from} → #{bump.to}"),
@@ -229,7 +229,7 @@ module Importmap
       def metadata_for(kind, bumps)
         {
           tool: "importmap-update",
-          kind: kind,
+          kind:,
           packages: bumps.map { |b|
             entry = {name: b.name, from: b.from, to: b.to, semver_kind: b.semver_kind}
             entry[:severity] = b.advisory[:severity] if b.advisory

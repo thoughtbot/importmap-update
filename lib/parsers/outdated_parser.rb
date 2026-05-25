@@ -71,9 +71,9 @@ module Importmap
         def build_row(cells)
           name, current, latest_or_error = cells[0], cells[1], cells[2]
           if VERSION_SHAPE_RE.match?(latest_or_error)
-            OutdatedPackage.new(name: name, current: current, latest: latest_or_error, error: nil)
+            OutdatedPackage.new(name:, current:, latest: latest_or_error, error: nil)
           else
-            OutdatedPackage.new(name: name, current: current, latest: nil, error: latest_or_error)
+            OutdatedPackage.new(name:, current:, latest: nil, error: latest_or_error)
           end
         end
       end

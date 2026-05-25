@@ -47,7 +47,7 @@ module Importmap
           opts[:chdir] = @cwd if @cwd
           Bundler.with_unbundled_env do
             stdout, stderr, status = Open3.capture3(*argv, opts)
-            Result.new(stdout: stdout, stderr: stderr, exit_code: status.exitstatus)
+            Result.new(stdout:, stderr:, exit_code: status.exitstatus)
           end
         end
 

@@ -15,15 +15,15 @@ class PlannerTest < Minitest::Test
   # ---- helpers ----
 
   def outdated(name, from, to, error: nil)
-    Outdated.new(name: name, current: from, latest: to, error: error)
+    Outdated.new(name:, current: from, latest: to, error:)
   end
 
   def vuln(name, severity, vulnerable: "<#{name}", advisory: "Vulnerability in #{name}")
-    Vuln.new(name: name, severity: severity, vulnerable_versions: vulnerable, advisory: advisory)
+    Vuln.new(name:, severity:, vulnerable_versions: vulnerable, advisory:)
   end
 
   def plan_with(outdated:, vulnerabilities: [], config: Config.default)
-    Planner.new(outdated: outdated, vulnerabilities: vulnerabilities, config: config).call
+    Planner.new(outdated:, vulnerabilities:, config:).call
   end
 
   # ---- happy paths: grouping ----
@@ -178,7 +178,7 @@ class PlannerTest < Minitest::Test
         outdated("lodash", "4.17.20", "4.17.21"),
         outdated("axios", "1.7.0", "1.7.1")
       ],
-      config: config
+      config:
     )
     assert_equal 2, plan.pr_specs.size
     assert(plan.pr_specs.all? { |s| s.kind == :patch })
@@ -198,7 +198,7 @@ class PlannerTest < Minitest::Test
         outdated("react", "18.2.0", "19.0.0"),
         outdated("vue", "2.7.0", "3.0.0")
       ],
-      config: config
+      config:
     )
     assert_equal 1, plan.pr_specs.size
     assert_equal :major, plan.pr_specs.first.kind
@@ -276,7 +276,7 @@ class PlannerTest < Minitest::Test
         outdated("b", "1.0.0", "2.0.0"),
         outdated("c", "1.0.0", "2.0.0")
       ],
-      config: config
+      config:
     )
     assert_equal 2, plan.pr_specs.size
     assert(plan.warnings.any? { |w| w.include?("Dropped 1") })
@@ -296,7 +296,7 @@ class PlannerTest < Minitest::Test
         vuln("vulnB", "high"),
         vuln("vulnC", "high")
       ],
-      config: config
+      config:
     )
     security = plan.pr_specs.select(&:security?)
     assert_equal 3, security.size, "security PRs should not be throttled"
@@ -312,7 +312,7 @@ class PlannerTest < Minitest::Test
         outdated("patch-pkg", "1.0.0", "1.0.1"),  # patch (grouped)
         outdated("major-pkg", "1.0.0", "2.0.0")  # major (individual)
       ],
-      config: config
+      config:
     )
     # Major should win over patch when only 1 slot is available.
     assert_equal 1, plan.pr_specs.size

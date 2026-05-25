@@ -62,13 +62,13 @@ module Importmap
 
       def to_h
         {
-          version: version,
+          version:,
           grouping: grouping.transform_values { |b| {strategy: b.strategy} },
-          open_pull_requests_limit: open_pull_requests_limit,
-          labels: labels,
-          reviewers: reviewers,
-          commit_message: {prefix: commit_message.prefix},
-          branch_prefix: branch_prefix
+          open_pull_requests_limit:,
+          labels:,
+          reviewers:,
+          branch_prefix:,
+          commit_message: {prefix: commit_message.prefix}
         }
       end
 

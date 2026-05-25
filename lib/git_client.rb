@@ -47,7 +47,7 @@ module Importmap
       end
 
       def push(branch:, force: false)
-        @repo.push("origin", branch, force: force)
+        @repo.push("origin", branch, force:)
         nil
       end
     end

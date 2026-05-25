@@ -62,7 +62,7 @@ module Importmap
 
       # Edits an existing PR's title and body.
       def update_pr(number:, title:, body:)
-        @client.update_pull_request(@repo, number, title: title, body: body)
+        @client.update_pull_request(@repo, number, title:, body:)
         nil
       end
 

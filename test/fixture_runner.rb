@@ -17,8 +17,8 @@ module Importmap
 
         def add(pattern:, stdout: "", stderr: "", exit_code: 0)
           @fixtures << Fixture.new(
-            pattern: pattern,
-            result: Result.new(stdout: stdout, stderr: stderr, exit_code: exit_code)
+            pattern:,
+            result: Result.new(stdout:, stderr:, exit_code:)
           )
         end
 

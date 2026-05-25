@@ -62,11 +62,11 @@ module Importmap
         # If a description contained a `|`, cells.size will be >4. Rejoin the
         # tail into the advisory column so we don't lose information.
         def build_row(cells)
-          name, severity, vuln_versions, *advisory_parts = cells
+          name, severity, vulnerable_versions, *advisory_parts = cells
           Vulnerability.new(
-            name: name,
-            severity: severity,
-            vulnerable_versions: vuln_versions,
+            name:,
+            severity:,
+            vulnerable_versions:,
             advisory: advisory_parts.join(" | ")
           )
         end
