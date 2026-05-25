@@ -38,23 +38,37 @@ runs:
   using: "composite"
   steps:
     - id: run-importmaps
-      name: Run importmap audit and outdated
+      name: Find outdated packages
       shell: bash
       working-directory: ${{ inputs.rails-root }}
       run: |
+        AUDIT_OUTPUT=$(bin/importmap audit 2>&1 || true)
+        OUTDATED_OUTPUT=$(bin/importmap outdated 2>&1 || true)
+
+        echo "## Importmap Update" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Vulnerabilities" >> $GITHUB_STEP_SUMMARY
+
+        echo "$AUDIT_OUTPUT" >> $GITHUB_STEP_SUMMARY
+
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Outdated packages" >> $GITHUB_STEP_SUMMARY
+        echo "$OUTDATED_OUTPUT" >> $GITHUB_STEP_SUMMARY
+
         {
-          echo "importmap-audit<<IMPORTMAP_AUDIT_OUTPUT"
-          bin/importmap audit 2>&1 || true
-          echo IMPORTMAP_AUDIT_OUTPUT
+          echo 'importmap-audit<<IMPORTMAP_AUDIT_OUTPUT'
+          echo "$AUDIT_OUTPUT"
+          echo 'IMPORTMAP_AUDIT_OUTPUT'
         } >> "$GITHUB_OUTPUT"
 
         {
-          echo "importmap-outdated<<IMPORTMAP_OUTDATED_OUTPUT"
-          bin/importmap outdated 2>&1 || true
-          echo IMPORTMAP_OUTDATED_OUTPUT
+          echo 'importmap-outdated<<IMPORTMAP_OUTDATED_OUTPUT'
+          echo "$OUTDATED_OUTPUT"
+          echo 'IMPORTMAP_OUTDATED_OUTPUT'
         } >> "$GITHUB_OUTPUT"
 
-    - name: Run importmap-update
+    - id: run-importmaps-update
+      name: Run importmap-update
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
