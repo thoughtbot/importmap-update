@@ -37,28 +37,52 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Save importmap outputs
+    - id: run-importmaps
+      name: Find outdated packages
       shell: bash
       working-directory: ${{ inputs.rails-root }}
       run: |
-        bin/importmap audit 2>&1 | tee "${{ runner.temp }}/importmap-audit.txt" || true
-        bin/importmap outdated 2>&1 | tee "${{ runner.temp }}/importmap-outdated.txt" || true
+        AUDIT_OUTPUT=$(bin/importmap audit 2>&1 || true)
+        OUTDATED_OUTPUT=$(bin/importmap outdated 2>&1 || true)
 
-    - name: Run importmap-update
+        echo "## Importmap Update" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Vulnerabilities" >> $GITHUB_STEP_SUMMARY
+
+        echo "$AUDIT_OUTPUT" >> $GITHUB_STEP_SUMMARY
+
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Outdated packages" >> $GITHUB_STEP_SUMMARY
+        echo "$OUTDATED_OUTPUT" >> $GITHUB_STEP_SUMMARY
+
+        {
+          echo 'importmap-audit<<IMPORTMAP_AUDIT_OUTPUT'
+          echo "$AUDIT_OUTPUT"
+          echo 'IMPORTMAP_AUDIT_OUTPUT'
+        } >> "$GITHUB_OUTPUT"
+
+        {
+          echo 'importmap-outdated<<IMPORTMAP_OUTDATED_OUTPUT'
+          echo "$OUTDATED_OUTPUT"
+          echo 'IMPORTMAP_OUTDATED_OUTPUT'
+        } >> "$GITHUB_OUTPUT"
+
+    - id: run-importmaps-update
+      name: Run importmap-update
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
-        BUNDLE_GEMFILE:           ${{ github.action_path }}/Gemfile
-        RAILS_ROOT:               ${{ inputs.rails-root }}
-        GITHUB_TOKEN:             ${{ inputs.github-token }}
-        GITHUB_REPOSITORY:        ${{ github.repository }}
-        INPUT_CONFIG_FILE:        ${{ inputs.config-file }}
-        IMPORTMAP_BASE_BRANCH:    ${{ inputs.base-branch }}
-        IMPORTMAP_DRY_RUN:        ${{ inputs.dry-run }}
-        IMPORTMAP_AUTHOR_NAME:    ${{ inputs.author-name }}
-        IMPORTMAP_AUTHOR_EMAIL:   ${{ inputs.author-email }}
-        IMPORTMAP_OUTDATED_FILE:  ${{ runner.temp }}/importmap-outdated.txt
-        IMPORTMAP_AUDIT_FILE:     ${{ runner.temp }}/importmap-audit.txt
+        BUNDLE_GEMFILE:            ${{ github.action_path }}/Gemfile
+        RAILS_ROOT:                ${{ inputs.rails-root }}
+        GITHUB_TOKEN:              ${{ inputs.github-token }}
+        GITHUB_REPOSITORY:         ${{ github.repository }}
+        INPUT_CONFIG_FILE:         ${{ inputs.config-file }}
+        IMPORTMAP_BASE_BRANCH:     ${{ inputs.base-branch }}
+        IMPORTMAP_DRY_RUN:         ${{ inputs.dry-run }}
+        IMPORTMAP_AUTHOR_NAME:     ${{ inputs.author-name }}
+        IMPORTMAP_AUTHOR_EMAIL:    ${{ inputs.author-email }}
+        IMPORTMAP_OUTDATED_OUTPUT: ${{ steps.run-importmaps.outputs.importmap-outdated }}
+        IMPORTMAP_AUDIT_OUTPUT:    ${{ steps.run-importmaps.outputs.importmap-audit }}
       run: |
         bundle install
         bundle exec exe/importmap-update 2>&1 | tee "${IMPORTMAP_RUN_LOG:-/dev/null}"

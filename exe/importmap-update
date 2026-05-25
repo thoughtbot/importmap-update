@@ -13,6 +13,8 @@
 #   IMPORTMAP_DRY_RUN          Set to "true" for a no-side-effects run.
 #   IMPORTMAP_AUTHOR_NAME      Git author name for commits.
 #   IMPORTMAP_AUTHOR_EMAIL     Git author email for commits.
+#   IMPORTMAP_OUTDATED_OUTPUT  Output of `bin/importmap outdated`.
+#   IMPORTMAP_AUDIT_OUTPUT     Output of `bin/importmap audit`.
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
@@ -51,9 +53,6 @@ rescue Importmap::Update::Config::ConfigError => e
   exit 2
 end
 
-outdated_file = ENV.fetch("IMPORTMAP_OUTDATED_FILE")
-audit_file = ENV.fetch("IMPORTMAP_AUDIT_FILE")
-
 repo = ENV["GITHUB_REPOSITORY"]
 if repo.nil? || repo.empty?
   warn "GITHUB_REPOSITORY is not set; refusing to run."
@@ -75,10 +74,8 @@ git = Importmap::Update::GitClient.new(
   author_email: ENV.fetch("IMPORTMAP_AUTHOR_EMAIL", "github-actions[bot]@users.noreply.github.com")
 )
 
-outdated_output = File.read(outdated_file)
-audit_output = File.read(audit_file)
-outdated = Importmap::Update::Parsers::OutdatedParser.parse(outdated_output)
-vulnerabilities = Importmap::Update::Parsers::AuditParser.parse(audit_output)
+outdated = Importmap::Update::Parsers::OutdatedParser.parse(ENV.fetch("IMPORTMAP_OUTDATED_OUTPUT"))
+vulnerabilities = Importmap::Update::Parsers::AuditParser.parse(ENV.fetch("IMPORTMAP_AUDIT_OUTPUT"))
 plan = Importmap::Update::Planner.new(
   outdated: outdated, vulnerabilities: vulnerabilities, config: config
 ).call
