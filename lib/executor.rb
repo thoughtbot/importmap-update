@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "git"
 require_relative "commands"
 require_relative "github_client"
 require_relative "git_client"
@@ -75,7 +76,7 @@ module Importmap
             else
               Outcome.new(type: action.type, status: :failed, detail: "Unknown action type")
             end
-          rescue Commands::CommandError => e
+          rescue Commands::CommandError, Git::FailedError => e
             warnings << "#{action.type} on #{describe(action)}: #{e.message}"
             Outcome.new(
               type: action.type, status: :failed,

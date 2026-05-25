@@ -45,23 +45,23 @@ class CommandsTest < Minitest::Test
   def test_fixture_runner_returns_recorded_result_for_exact_argv_match
     runner = Commands::FixtureRunner.new
     runner.add(
-      pattern: ["gh", "pr", "list", "--state", "open"],
-      stdout: "[]\n"
+      pattern: ["bin/importmap", "outdated"],
+      stdout: "| Package | Current | Latest |\n"
     )
-    result = runner.run("gh", "pr", "list", "--state", "open")
-    assert_equal "[]\n", result.stdout
+    result = runner.run("bin/importmap", "outdated")
+    assert_equal "| Package | Current | Latest |\n", result.stdout
     assert_predicate result, :success?
   end
 
   def test_fixture_runner_records_calls_in_order
     runner = Commands::FixtureRunner.new
-    runner.add(pattern: ["gh", "auth", "status"], stdout: "ok\n")
-    runner.add(pattern: ["echo", "hi"], stdout: "hi\n")
-    runner.run("gh", "auth", "status")
-    runner.run("echo", "hi")
+    runner.add(pattern: ["bin/importmap", "outdated"], stdout: "")
+    runner.add(pattern: ["bin/importmap", "audit"], stdout: "")
+    runner.run("bin/importmap", "outdated")
+    runner.run("bin/importmap", "audit")
     assert_equal [
-      ["gh", "auth", "status"],
-      ["echo", "hi"]
+      ["bin/importmap", "outdated"],
+      ["bin/importmap", "audit"]
     ], runner.calls
   end
 
@@ -70,29 +70,28 @@ class CommandsTest < Minitest::Test
     # specific patterns. This test pins the behavior so callers know to
     # register specific patterns before general ones.
     runner = Commands::FixtureRunner.new
-    runner.add(pattern: ["echo", "specific"], stdout: "first\n")
-    runner.add(pattern: ["echo", "specific"], stdout: "second\n")
-    assert_equal "first\n", runner.run("echo", "specific").stdout
+    runner.add(pattern: ["bin/importmap", "pin", "lodash@4.17.21"], stdout: "first\n")
+    runner.add(pattern: ["bin/importmap", "pin", "lodash@4.17.21"], stdout: "second\n")
+    assert_equal "first\n", runner.run("bin/importmap", "pin", "lodash@4.17.21").stdout
   end
 
   # ---- FixtureRunner: regex matching ----
 
   def test_fixture_runner_supports_regex_elements_in_patterns
-    # The branch SHA changes every run; the pattern uses a regex to allow
-    # any 40-char hex SHA in that position.
+    # Package versions change; the pattern uses a regex to allow any semver.
     runner = Commands::FixtureRunner.new
     runner.add(
-      pattern: ["git", "rev-parse", /\A[0-9a-f]{7,40}\z/],
-      stdout: "ok\n"
+      pattern: ["bin/importmap", "pin", /\Alodash@\d+\.\d+\.\d+\z/],
+      stdout: "Pinned lodash\n"
     )
-    assert_equal "ok\n", runner.run("git", "rev-parse", "abcdef1234567").stdout
+    assert_equal "Pinned lodash\n", runner.run("bin/importmap", "pin", "lodash@4.17.21").stdout
   end
 
   def test_fixture_runner_regex_must_match_exactly_at_position
     runner = Commands::FixtureRunner.new
-    runner.add(pattern: ["git", "checkout", /\Aupdates\//], stdout: "ok\n")
+    runner.add(pattern: ["bin/importmap", "pin", /\Alodash@/], stdout: "ok\n")
     err = assert_raises(RuntimeError) do
-      runner.run("git", "checkout", "main")
+      runner.run("bin/importmap", "pin", "axios@1.7.0")
     end
     assert_match(/No fixture matched/, err.message)
   end
@@ -101,28 +100,28 @@ class CommandsTest < Minitest::Test
 
   def test_fixture_runner_raises_clearly_when_no_pattern_matches
     runner = Commands::FixtureRunner.new
-    runner.add(pattern: ["gh", "pr", "view"], stdout: "")
-    err = assert_raises(RuntimeError) { runner.run("gh", "pr", "close", "1") }
+    runner.add(pattern: ["bin/importmap", "outdated"], stdout: "")
+    err = assert_raises(RuntimeError) { runner.run("bin/importmap", "audit") }
     assert_includes err.message, "No fixture matched"
-    assert_includes err.message, "close"
+    assert_includes err.message, "audit"
   end
 
   def test_fixture_runner_argv_size_mismatch_does_not_match
-    # A 3-element pattern must not match a 4-element call.
+    # A 2-element pattern must not match a 3-element call.
     runner = Commands::FixtureRunner.new
-    runner.add(pattern: ["gh", "pr", "list"], stdout: "ok\n")
-    assert_raises(RuntimeError) { runner.run("gh", "pr", "list", "--json", "number") }
+    runner.add(pattern: ["bin/importmap", "outdated"], stdout: "ok\n")
+    assert_raises(RuntimeError) { runner.run("bin/importmap", "outdated", "--verbose") }
   end
 
   def test_fixture_runner_bang_raises_command_error_on_recorded_failure
     runner = Commands::FixtureRunner.new
     runner.add(
-      pattern: ["gh", "pr", "create"],
-      stderr: "GraphQL: branch already exists",
+      pattern: ["bin/importmap", "pin", "lodash@4.17.21"],
+      stderr: "network error",
       exit_code: 1
     )
-    err = assert_raises(Commands::CommandError) { runner.run!("gh", "pr", "create") }
+    err = assert_raises(Commands::CommandError) { runner.run!("bin/importmap", "pin", "lodash@4.17.21") }
     assert_equal 1, err.result.exit_code
-    assert_includes err.message, "branch already exists"
+    assert_includes err.message, "network error"
   end
 end
