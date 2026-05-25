@@ -79,21 +79,11 @@ def require_files!(opts, *keys)
   exit 2
 end
 
-def build_plan_from_files(opts, config)
+def build_plan(opts, config)
   outdated_output = File.read(opts[:outdated_file])
   audit_output = File.read(opts[:audit_file])
   outdated = Importmap::Update::Parsers::OutdatedParser.parse(outdated_output)
   vulnerabilities = Importmap::Update::Parsers::AuditParser.parse(audit_output)
-  Importmap::Update::Planner.new(
-    outdated: outdated, vulnerabilities: vulnerabilities, config: config
-  ).call
-end
-
-def build_plan_from_live(config, runner)
-  outdated_result = runner.run("bin/importmap", "outdated")
-  audit_result = runner.run("bin/importmap", "audit")
-  outdated = Importmap::Update::Parsers::OutdatedParser.parse(outdated_result.stdout)
-  vulnerabilities = Importmap::Update::Parsers::AuditParser.parse(audit_result.stdout)
   Importmap::Update::Planner.new(
     outdated: outdated, vulnerabilities: vulnerabilities, config: config
   ).call
@@ -117,7 +107,7 @@ when :print_config
 
 when :print_plan
   require_files!(options, :outdated_file, :audit_file)
-  plan = build_plan_from_files(options, config)
+  plan = build_plan(options, config)
   puts({
     "pr_specs" => plan.pr_specs.map { |s|
       {
@@ -134,7 +124,7 @@ when :print_plan
 
 when :print_actions
   require_files!(options, :outdated_file, :audit_file)
-  plan = build_plan_from_files(options, config)
+  plan = build_plan(options, config)
   existing_prs = load_existing_prs_from_file(options[:existing_prs_file])
   result = Importmap::Update::Reconciler.new(plan: plan, existing_prs: existing_prs).call
   puts({
@@ -151,6 +141,8 @@ when :print_actions
   }.to_yaml)
 
 when :run
+  require_files!(options, :outdated_file, :audit_file)
+
   repo = ENV["GITHUB_REPOSITORY"]
   if repo.nil? || repo.empty?
     warn "GITHUB_REPOSITORY is not set; refusing to run."
@@ -172,7 +164,7 @@ when :run
     author_email: ENV.fetch("IMPORTMAP_AUTHOR_EMAIL", "github-actions[bot]@users.noreply.github.com")
   )
 
-  plan = build_plan_from_live(config, runner)
+  plan = build_plan(options, config)
   existing_prs = gh.list_open_prs(branch_prefix: config.branch_prefix)
   reconciled = Importmap::Update::Reconciler.new(plan: plan, existing_prs: existing_prs).call
 
