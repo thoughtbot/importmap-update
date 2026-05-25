@@ -60,14 +60,6 @@ module Importmap
         new(DEFAULTS)
       end
 
-      # ---- inspection / debug ----
-
-      # Render as YAML for `--print-config` debugging. Symbols are emitted
-      # as plain strings so the output is copy-pasteable into a real config.
-      def to_yaml
-        stringify(to_h).to_yaml
-      end
-
       def to_h
         {
           version: version,
@@ -231,20 +223,6 @@ module Importmap
           else
             override_val
           end
-        end
-      end
-
-      # Symbols → strings for YAML output (so `--print-config` is copy-pasteable).
-      def stringify(value)
-        case value
-        when Hash
-          value.each_with_object({}) { |(k, v), acc| acc[k.to_s] = stringify(v) }
-        when Array
-          value.map { |v| stringify(v) }
-        when Symbol
-          value.to_s
-        else
-          value
         end
       end
     end

@@ -198,27 +198,6 @@ class ConfigTest < Minitest::Test
     assert_includes err.message, "branch_prefix"
   end
 
-  # ---- to_yaml / --print-config ----
-
-  def test_to_yaml_round_trips_to_an_equivalent_config
-    # The user should be able to run `--print-config`, paste the output into
-    # their repo, and have it load back to an identical Config.
-    original = Config.default
-    Tempfile.create(["config", ".yml"]) do |f|
-      f.write(original.to_yaml)
-      f.flush
-      reloaded = Config.load(f.path)
-      assert_equal original.to_h, reloaded.to_h
-    end
-  end
-
-  def test_to_yaml_emits_symbols_as_plain_strings
-    yaml = Config.default.to_yaml
-    # Strategy values should appear as `individual`, not `:individual`.
-    refute_match(/:\s*:individual/, yaml)
-    assert_match(/strategy: (grouped|individual)/, yaml)
-  end
-
   def test_constructor_is_private
     # Force callers through Config.load / Config.default so validation always runs.
     assert_raises(NoMethodError) { Config.new({}) }

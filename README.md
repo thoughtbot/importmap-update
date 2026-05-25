@@ -109,28 +109,6 @@ PRs are kept in priority order major → minor → patch.
   PRs. The block is schema-versioned so future format changes can't
   cause this action to mistreat newer PRs.
 
-## Debugging
-
-The CLI supports three offline modes useful during config development:
-
-```bash
-# Show the resolved config (with defaults applied).
-./exe/importmap-update --print-config
-
-# Capture `bin/importmap outdated` and `bin/importmap audit` output,
-# then see what the planner would do without hitting GitHub.
-./exe/importmap-update --print-plan \
-  --outdated-file /tmp/outdated.txt \
-  --audit-file /tmp/audit.txt
-
-# Same but also runs the reconciler against a YAML file of mocked
-# existing PRs — useful for verifying close/force-push behavior.
-./exe/importmap-update --print-actions \
-  --outdated-file /tmp/outdated.txt \
-  --audit-file /tmp/audit.txt \
-  --existing-prs /tmp/existing.yml
-```
-
 ## Development
 
 ```bash
