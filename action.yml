@@ -37,12 +37,25 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Save importmap outputs
+    - id: save-importmap-outputs
+      name: Save importmap outputs
       shell: bash
       working-directory: ${{ inputs.rails-root }}
       run: |
-        bin/importmap audit 2>&1 | tee "${{ runner.temp }}/importmap-audit.txt" || true
-        bin/importmap outdated 2>&1 | tee "${{ runner.temp }}/importmap-outdated.txt" || true
+        {
+          echo importmap-audit<<IMPORTMAP_AUDIT_OUTPUT
+          bin/importmap audit 2>&1 || true
+          echo IMPORTMAP_AUDIT_OUTPUT
+        } >> "$GITHUB_OUTPUT"
+
+        {
+          echo importmap-outdated<<IMPORTMAP_OUTDATED_OUTPUT
+          bin/importmap outdated 2>&1 || true
+          echo IMPORTMAP_OUTDATED_OUTPUT
+        } >> "$GITHUB_OUTPUT"
+
+        bin/importmap audit 2>&1 | tee /tmp/importmap-audit.txt || true
+        bin/importmap outdated 2>&1 | tee /tmp/importmap-outdated.txt || true
 
     - name: Run importmap-update
       shell: bash
