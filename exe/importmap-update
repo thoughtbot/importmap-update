@@ -2,16 +2,7 @@
 # frozen_string_literal: true
 
 #
-# Entry point for the importmap-update.
-#
-# Modes:
-#   --print-config             Print the resolved config and exit.
-#   --print-plan               Run parsers + planner against captured
-#                              outdated/audit output.
-#   --print-actions            Run planner + reconciler. Existing PRs come
-#                              from a YAML file (offline) or from gh.
-#   (default)                  Full run: parse outdated/audit, plan,
-#                              reconcile against live gh, execute.
+# Entry point for the importmap-update action.
 #
 # Environment variables consumed by the action:
 #   INPUT_CONFIG_FILE          Path to the YAML config (default
@@ -42,20 +33,14 @@ options = {
   config_path: ENV.fetch("INPUT_CONFIG_FILE", ".github/importmap-updates.yml"),
   outdated_file: nil,
   audit_file: nil,
-  existing_prs_file: nil,
   dry_run: %w[true 1 yes].include?(ENV["IMPORTMAP_DRY_RUN"].to_s.downcase)
 }
-action = :run
 
 OptionParser.new do |opts|
   opts.banner = "Usage: importmap-update [options]"
   opts.on("-c", "--config PATH", "Path to config YAML") { |p| options[:config_path] = p }
-  opts.on("--print-config", "Print resolved config and exit") { action = :print_config }
-  opts.on("--print-plan", "Run planner; needs --outdated-file --audit-file") { action = :print_plan }
-  opts.on("--print-actions", "Run planner + reconciler; needs --outdated-file --audit-file [--existing-prs]") { action = :print_actions }
   opts.on("--outdated-file PATH", "Captured `bin/importmap outdated` output") { |p| options[:outdated_file] = p }
   opts.on("--audit-file PATH", "Captured `bin/importmap audit` output") { |p| options[:audit_file] = p }
-  opts.on("--existing-prs PATH", "YAML file listing current PRs (offline)") { |p| options[:existing_prs_file] = p }
   opts.on("--dry-run", "Do not perform side effects; log what would happen") { options[:dry_run] = true }
   opts.on("-h", "--help") {
     puts opts
@@ -70,127 +55,66 @@ rescue Importmap::Update::Config::ConfigError => e
   exit 2
 end
 
-# ---- helpers shared by debug and run modes ----
-
-def require_files!(opts, *keys)
-  missing = keys.select { |k| opts[k].nil? }
-  return if missing.empty?
+missing = [:outdated_file, :audit_file].select { |k| options[k].nil? }
+unless missing.empty?
   warn "Missing required option(s): #{missing.map { |k| "--#{k.to_s.tr("_", "-")}" }.join(", ")}"
   exit 2
 end
 
-def build_plan(opts, config)
-  outdated_output = File.read(opts[:outdated_file])
-  audit_output = File.read(opts[:audit_file])
-  outdated = Importmap::Update::Parsers::OutdatedParser.parse(outdated_output)
-  vulnerabilities = Importmap::Update::Parsers::AuditParser.parse(audit_output)
-  Importmap::Update::Planner.new(
-    outdated: outdated, vulnerabilities: vulnerabilities, config: config
-  ).call
+repo = ENV["GITHUB_REPOSITORY"]
+if repo.nil? || repo.empty?
+  warn "GITHUB_REPOSITORY is not set; refusing to run."
+  exit 2
 end
 
-def load_existing_prs_from_file(path)
-  return [] if path.nil? || !File.exist?(path)
-  raw = YAML.safe_load_file(path, permitted_classes: [], aliases: false) || []
-  raw.map { |h|
-    Importmap::Update::Reconciler::ExistingPR.new(
-      number: h["number"], branch: h["branch"], title: h["title"], body: h["body"].to_s
-    )
-  }
+token = ENV["GITHUB_TOKEN"] || ENV["GH_TOKEN"]
+if token.nil? || token.empty?
+  warn "GITHUB_TOKEN (or GH_TOKEN) is not set; refusing to run."
+  exit 2
 end
 
-# ---- modes ----
+rails_root = ENV.fetch("RAILS_ROOT", ".")
+runner = Importmap::Update::Commands::ShellRunner.new(cwd: rails_root)
+gh = Importmap::Update::GitHubClient.new(repo: repo, token: token)
+git = Importmap::Update::GitClient.new(
+  repo: Git.open(rails_root),
+  author_name: ENV.fetch("IMPORTMAP_AUTHOR_NAME", "github-actions[bot]"),
+  author_email: ENV.fetch("IMPORTMAP_AUTHOR_EMAIL", "github-actions[bot]@users.noreply.github.com")
+)
 
-case action
-when :print_config
-  puts config.to_yaml
+outdated_output = File.read(options[:outdated_file])
+audit_output = File.read(options[:audit_file])
+outdated = Importmap::Update::Parsers::OutdatedParser.parse(outdated_output)
+vulnerabilities = Importmap::Update::Parsers::AuditParser.parse(audit_output)
+plan = Importmap::Update::Planner.new(
+  outdated: outdated, vulnerabilities: vulnerabilities, config: config
+).call
 
-when :print_plan
-  require_files!(options, :outdated_file, :audit_file)
-  plan = build_plan(options, config)
-  puts({
-    "pr_specs" => plan.pr_specs.map { |s|
-      {
-        "kind" => s.kind.to_s, "branch" => s.branch, "title" => s.title,
-        "packages" => s.packages.map { |p|
-          h = {"name" => p.name, "from" => p.from, "to" => p.to, "semver_kind" => p.semver_kind.to_s}
-          h["severity"] = p.advisory[:severity] if p.advisory
-          h
-        }
-      }
-    },
-    "warnings" => plan.warnings
-  }.to_yaml)
+existing_prs = gh.list_open_prs(branch_prefix: config.branch_prefix)
+reconciled = Importmap::Update::Reconciler.new(plan: plan, existing_prs: existing_prs).call
 
-when :print_actions
-  require_files!(options, :outdated_file, :audit_file)
-  plan = build_plan(options, config)
-  existing_prs = load_existing_prs_from_file(options[:existing_prs_file])
-  result = Importmap::Update::Reconciler.new(plan: plan, existing_prs: existing_prs).call
-  puts({
-    "actions" => result.actions.map { |a|
-      h = {"type" => a.type.to_s}
-      h["branch"] = (a.pr_spec || a.existing_pr).branch
-      h["existing_pr_number"] = a.existing_pr.number if a.existing_pr
-      h["title"] = a.pr_spec.title if a.pr_spec
-      h["reason"] = a.reason if a.reason
-      h
-    },
-    "ignored" => result.ignored.map { |pr| {"number" => pr.number, "branch" => pr.branch} },
-    "warnings" => plan.warnings
-  }.to_yaml)
+executor = Importmap::Update::Executor.new(
+  gh: gh, git: git, runner: runner,
+  base_branch: ENV.fetch("IMPORTMAP_BASE_BRANCH", "main"),
+  commit_message_prefix: config.commit_message.prefix,
+  labels: config.labels,
+  dry_run: options[:dry_run]
+)
+report = executor.call(reconciled.actions)
 
-when :run
-  require_files!(options, :outdated_file, :audit_file)
-
-  repo = ENV["GITHUB_REPOSITORY"]
-  if repo.nil? || repo.empty?
-    warn "GITHUB_REPOSITORY is not set; refusing to run."
-    exit 2
-  end
-
-  token = ENV["GITHUB_TOKEN"] || ENV["GH_TOKEN"]
-  if token.nil? || token.empty?
-    warn "GITHUB_TOKEN (or GH_TOKEN) is not set; refusing to run."
-    exit 2
-  end
-
-  rails_root = ENV.fetch("RAILS_ROOT", ".")
-  runner = Importmap::Update::Commands::ShellRunner.new(cwd: rails_root)
-  gh = Importmap::Update::GitHubClient.new(repo: repo, token: token)
-  git = Importmap::Update::GitClient.new(
-    repo: Git.open(rails_root),
-    author_name: ENV.fetch("IMPORTMAP_AUTHOR_NAME", "github-actions[bot]"),
-    author_email: ENV.fetch("IMPORTMAP_AUTHOR_EMAIL", "github-actions[bot]@users.noreply.github.com")
-  )
-
-  plan = build_plan(options, config)
-  existing_prs = gh.list_open_prs(branch_prefix: config.branch_prefix)
-  reconciled = Importmap::Update::Reconciler.new(plan: plan, existing_prs: existing_prs).call
-
-  executor = Importmap::Update::Executor.new(
-    gh: gh, git: git, runner: runner,
-    base_branch: ENV.fetch("IMPORTMAP_BASE_BRANCH", "main"),
-    commit_message_prefix: config.commit_message.prefix,
-    labels: config.labels,
-    dry_run: options[:dry_run]
-  )
-  report = executor.call(reconciled.actions)
-
-  # Compact, easy-to-read run summary on stderr; the Actions log captures this.
-  warn "===== importmap-update summary ====="
-  warn "Dry run: #{options[:dry_run]}"
-  warn "Plan warnings:"
-  plan.warnings.each { |w| warn "  - #{w}" }
-  warn "Reconciler ignored #{reconciled.ignored.size} foreign PR(s)."
-  warn "Actions:"
-  report.outcomes.each do |o|
-    desc = [o.branch || "?", "PR##{o.pr_number}"].compact.join(" ")
-    warn "  - #{o.type} [#{o.status}] #{desc} #{"\u2014 " + o.detail if o.detail}"
-  end
-  report.warnings.each { |w| warn "  ! #{w}" }
-
-  # Exit non-zero only if any non-skipped outcome failed; in dry run all are
-  # skipped, which is a successful run.
-  exit(report.outcomes.any?(&:failed?) ? 1 : 0)
+# Compact, easy-to-read run summary on stderr; the Actions log captures this.
+warn "===== importmap-update summary ====="
+warn "Dry run: #{options[:dry_run]}"
+warn "Plan warnings:"
+plan.warnings.each { |w| warn "  - #{w}" }
+warn "Reconciler ignored #{reconciled.ignored.size} foreign PR(s)."
+warn "Actions:"
+report.outcomes.each do |o|
+  desc = [o.branch || "?", "PR##{o.pr_number}"].compact.join(" ")
+  warn "  - #{o.type} [#{o.status}] #{desc} #{"— " + o.detail if o.detail}"
 end
+report.warnings.each { |w| warn "  ! #{w}" }
+
+# Exit non-zero only if any non-skipped outcome failed; in dry run all are
+# skipped, which is a successful run.
+exit(report.outcomes.any?(&:failed?) ? 1 : 0)
