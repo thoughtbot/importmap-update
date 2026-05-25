@@ -17,9 +17,6 @@ jobs:
       - uses: actions/checkout@v6
 
       - uses: ruby/setup-ruby@v1
-        with:
-          bundler-cache: true
-
       - name: Create test Rails app
         run: |
           gem install rails --no-document
@@ -43,7 +40,9 @@ jobs:
 
       - name: Pin outdated packages
         run: |
-          cat >> /tmp/test-app/config/importmap.rb << 'EOF'
+          cd /tmp/test-app
+
+          cat >> config/importmap.rb << 'EOF'
 
           pin "is-svg",     to: "https://cdn.jsdelivr.net/npm/is-svg@3.0.0/index.js"
           pin "md5",        to: "https://cdn.jsdelivr.net/npm/md5@2.2.0/dist/md5.min.js"
@@ -52,6 +51,9 @@ jobs:
           pin "tom-select", to: "https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/esm/tom-select.complete.js"
           pin "just-extend", to: "https://cdn.jsdelivr.net/npm/just-extend@5.1.1/index.mjs"
           EOF
+
+          git add .
+          git commit -m "Pin outdated packages"
 
       - name: Run in dry-run mode
         uses: ./

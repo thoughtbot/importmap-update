@@ -35,11 +35,18 @@ inputs:
   rails-root:
     description: "Directory containing the Rails app to run against. Useful when the app lives in a subdirectory or for integration testing."
     required: false
-    default: "."
+    default: "${{ github.workspace }}"
 
 runs:
   using: "composite"
   steps:
+    - name: Save importmap outputs
+      shell: bash
+      working-directory: ${{ inputs.rails-root }}
+      run: |
+        bin/importmap audit 2>&1 | tee /tmp/importmap-audit.txt || true
+        bin/importmap outdated 2>&1 | tee /tmp/importmap-outdated.txt || true
+
     - name: Run importmap-update
       shell: bash
       working-directory: ${{ github.action_path }}
@@ -55,4 +62,7 @@ runs:
         IMPORTMAP_AUTHOR_EMAIL:   ${{ inputs.author-email }}
       run: |
         bundle install
-        bundle exec exe/importmap-update 2>&1 | tee "${IMPORTMAP_RUN_LOG:-/dev/null}"
+        bundle exec exe/importmap-update \
+          --outdated-file /tmp/importmap-outdated.txt \
+          --audit-file /tmp/importmap-audit.txt \
+          2>&1 | tee "${IMPORTMAP_RUN_LOG:-/dev/null}"
