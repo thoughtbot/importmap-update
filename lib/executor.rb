@@ -40,7 +40,7 @@ module Importmap
         end
       end
 
-      Report = Struct.new(:outcomes, :warnings, keyword_init: true)
+      Report = Data.define(:outcomes, :warnings)
 
       def initialize(
         gh:,

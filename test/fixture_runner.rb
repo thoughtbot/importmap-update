@@ -6,7 +6,7 @@ module Importmap
   module Update
     module Commands
       class FixtureRunner
-        Fixture = Struct.new(:pattern, :result, keyword_init: true)
+        Fixture = Data.define(:pattern, :result)
 
         def initialize(fixtures = [])
           @fixtures = fixtures

@@ -19,7 +19,7 @@ module Importmap
     # safer (no shell-injection surprises from package names) and easier to
     # match against fixture keys.
     module Commands
-      Result = Struct.new(:stdout, :stderr, :exit_code, keyword_init: true) do
+      Result = Data.define(:stdout, :stderr, :exit_code) do
         def success?
           exit_code == 0
         end

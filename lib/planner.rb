@@ -37,24 +37,18 @@ module Importmap
     #     attention than patches.
     class Planner
       # An individual package update slated for inclusion in some PR.
-      PackageBump = Struct.new(
-        :name, :from, :to, :semver_kind, :advisory,
-        keyword_init: true
-      )
+      PackageBump = Data.define(:name, :from, :to, :semver_kind, :advisory)
 
       # A planned pull request. The reconciler (step 4) will compare these against
       # existing open PRs on GitHub to decide what to open, force-push, or close.
-      PRSpec = Struct.new(
-        :kind, :packages, :branch, :title, :metadata,
-        keyword_init: true
-      ) do
+      PRSpec = Data.define(:kind, :packages, :branch, :title, :metadata) do
         def security?
           kind == :security
         end
       end
 
       # The full output of a planning pass.
-      Plan = Struct.new(:pr_specs, :warnings, keyword_init: true) do
+      Plan = Data.define(:pr_specs, :warnings) do
         def empty?
           pr_specs.empty?
         end

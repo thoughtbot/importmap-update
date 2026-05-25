@@ -20,7 +20,7 @@ module Importmap
       # free-form text. If it ever contains a literal `|`, we rejoin the
       # overflow cells so the description survives intact.
       class AuditParser
-        Vulnerability = Struct.new(:name, :severity, :vulnerable_versions, :advisory, keyword_init: true)
+        Vulnerability = Data.define(:name, :severity, :vulnerable_versions, :advisory)
 
         SEVERITIES = %w[low moderate high critical].freeze
 
