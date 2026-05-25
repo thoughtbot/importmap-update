@@ -54,7 +54,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           dry-run: "true"
-          working-directory: /tmp/test-app
+          rails-root: /tmp/test-app
 
       - name: Assert all outdated packages appear in dry-run output
         run: |

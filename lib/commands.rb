@@ -47,8 +47,10 @@ module Importmap
         def run(*argv)
           opts = {}
           opts[:chdir] = @cwd if @cwd
-          stdout, stderr, status = Open3.capture3(@env, *argv, **opts)
-          Result.new(stdout: stdout, stderr: stderr, exit_code: status.exitstatus)
+          Bundler.with_unbundled_env do
+            stdout, stderr, status = Open3.capture3(@env, *argv, opts)
+            Result.new(stdout: stdout, stderr: stderr, exit_code: status.exitstatus)
+          end
         end
 
         # Raises on non-zero exit. Use when you have no recovery strategy

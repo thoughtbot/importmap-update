@@ -13,7 +13,7 @@ class ExecutorTest < Minitest::Test
 
   # ---- fakes ----
 
-  # Spy GhClient that records calls and lets tests configure the PR number
+  # Spy GitHubClient that records calls and lets tests configure the PR number
   # returned by create_pr.
   class FakeGh
     attr_reader :created, :updated, :closed
