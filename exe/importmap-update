@@ -105,6 +105,37 @@ report.outcomes.each do |o|
 end
 report.warnings.each { |w| warn "  ! #{w}" }
 
+if (summary_path = ENV["GITHUB_STEP_SUMMARY"])
+  File.open(summary_path, "a") do |f|
+    f.puts "### Update summary"
+    f.puts "Dry run: #{options[:dry_run]}"
+
+    if plan.warnings.any?
+      f.puts "#### Plan warnings"
+      plan.warnings.each { |w| f.puts "- #{w}" }
+    end
+
+    f.puts ""
+    f.puts "Reconciler ignored #{reconciled.ignored.size} foreign PR(s)."
+    f.puts ""
+
+    if report.outcomes.any?
+      f.puts "#### Outcomes"
+      f.puts "| Branch | PR | Action | Status | Detail |"
+      f.puts "| --- | --- | --- | --- | --- |"
+      report.outcomes.each do |o|
+        f.puts "| #{o.branch || "?"} | #{"##{o.pr_number}" if o.pr_number} | #{o.type} | #{o.status} | #{o.detail} |"
+      end
+    end
+
+    report.warnings.each { |w|
+      f.puts ""
+      f.puts "> [!WARNING]"
+      f.puts "> #{w}"
+    }
+  end
+end
+
 # Exit non-zero only if any non-skipped outcome failed; in dry run all are
 # skipped, which is a successful run.
 exit(report.outcomes.any?(&:failed?) ? 1 : 0)
