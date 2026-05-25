@@ -34,6 +34,12 @@ jobs:
             --skip-bootsnap \
             --skip-test \
             --quiet
+          cd /tmp/test-app
+          git init
+          git add .
+          git config user.email "test@example.com"
+          git config user.name "Integration Test"
+          git commit -m "Initial commit"
 
       - name: Pin outdated packages
         run: |
