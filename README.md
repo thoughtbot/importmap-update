@@ -20,7 +20,7 @@ Another option is to use a dedicated GitHub token for this action, which can be
 set as a secret in the repository's settings. This token should have the `repo`
 scope enabled.
 
-Then, add a workflow file:
+Then, add a workflow file that sets up your Rails environment and runs the action:
 
 ```yaml
 # .github/workflows/importmap-updates.yml
@@ -38,7 +38,11 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
       - uses: thoughtbot/importmap-update@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
