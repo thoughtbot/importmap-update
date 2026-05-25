@@ -27,6 +27,7 @@ $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
 require "optparse"
 require "yaml"
+require "git"
 require "config"
 require "planner"
 require "reconciler"
@@ -162,10 +163,11 @@ when :run
     exit 2
   end
 
-  runner = Importmap::Update::Commands::ShellRunner.new(cwd: ENV.fetch("RAILS_ROOT", "."))
+  rails_root = ENV.fetch("RAILS_ROOT", ".")
+  runner = Importmap::Update::Commands::ShellRunner.new(cwd: rails_root)
   gh = Importmap::Update::GitHubClient.new(repo: repo, token: token)
   git = Importmap::Update::GitClient.new(
-    runner: runner,
+    repo: Git.open(rails_root),
     author_name: ENV.fetch("IMPORTMAP_AUTHOR_NAME", "github-actions[bot]"),
     author_email: ENV.fetch("IMPORTMAP_AUTHOR_EMAIL", "github-actions[bot]@users.noreply.github.com")
   )

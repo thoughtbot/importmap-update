@@ -5,14 +5,14 @@ require "json"
 
 module Importmap
   module Update
-    # Abstracts execution of external commands (gh, git, bin/importmap) so
-    # the rest of the codebase doesn't shell out directly. This is the seam
-    # tests hook into — production code runs commands for real, tests inject
-    # a FixtureRunner that replays pre-recorded (argv → stdout, exit) tuples.
+    # Abstracts execution of external commands (bin/importmap) so the rest
+    # of the codebase doesn't shell out directly. This is the seam tests hook
+    # into — production code runs commands for real, tests inject a
+    # FixtureRunner that replays pre-recorded (argv → stdout, exit) tuples.
     #
     # The interface deliberately mirrors what Open3.capture3 returns:
     #
-    #   runner.run("gh", "pr", "list", "--state", "open")
+    #   runner.run("bin/importmap", "outdated")
     #     # => Result(stdout: "...", stderr: "...", success: true, exit: 0)
     #
     # Commands are passed as an argv array, not a shell string. That's both
@@ -38,17 +38,15 @@ module Importmap
       # Production runner: actually executes the command.
       class ShellRunner
         # @param cwd [String, nil] working directory (defaults to current)
-        # @param env [Hash, nil] additional environment variables
-        def initialize(cwd: nil, env: nil)
+        def initialize(cwd: nil)
           @cwd = cwd
-          @env = env || {}
         end
 
         def run(*argv)
           opts = {}
           opts[:chdir] = @cwd if @cwd
           Bundler.with_unbundled_env do
-            stdout, stderr, status = Open3.capture3(@env, *argv, opts)
+            stdout, stderr, status = Open3.capture3(*argv, opts)
             Result.new(stdout: stdout, stderr: stderr, exit_code: status.exitstatus)
           end
         end
