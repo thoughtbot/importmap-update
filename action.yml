@@ -21,9 +21,6 @@ inputs:
     description: "When 'true', run end-to-end but skip all side effects (no commits, pushes, or PR operations)."
     required: false
     default: "false"
-  ruby-version:
-    description: "Ruby version to set up. Defaults to the consuming repo's .ruby-version."
-    required: false
   author-name:
     description: "Git author name for commits."
     required: false
@@ -44,8 +41,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.rails-root }}
       run: |
-        bin/importmap audit 2>&1 | tee /tmp/importmap-audit.txt || true
-        bin/importmap outdated 2>&1 | tee /tmp/importmap-outdated.txt || true
+        bin/importmap audit 2>&1 | tee "${{ runner.temp }}/importmap-audit.txt" || true
+        bin/importmap outdated 2>&1 | tee "${{ runner.temp }}/importmap-outdated.txt" || true
 
     - name: Run importmap-update
       shell: bash
@@ -60,9 +57,8 @@ runs:
         IMPORTMAP_DRY_RUN:        ${{ inputs.dry-run }}
         IMPORTMAP_AUTHOR_NAME:    ${{ inputs.author-name }}
         IMPORTMAP_AUTHOR_EMAIL:   ${{ inputs.author-email }}
+        IMPORTMAP_OUTDATED_FILE:  ${{ runner.temp }}/importmap-outdated.txt
+        IMPORTMAP_AUDIT_FILE:     ${{ runner.temp }}/importmap-audit.txt
       run: |
         bundle install
-        bundle exec exe/importmap-update \
-          --outdated-file /tmp/importmap-outdated.txt \
-          --audit-file /tmp/importmap-audit.txt \
-          2>&1 | tee "${IMPORTMAP_RUN_LOG:-/dev/null}"
+        bundle exec exe/importmap-update 2>&1 | tee "${IMPORTMAP_RUN_LOG:-/dev/null}"

@@ -31,16 +31,12 @@ require "parsers/audit_parser"
 
 options = {
   config_path: ENV.fetch("INPUT_CONFIG_FILE", ".github/importmap-updates.yml"),
-  outdated_file: nil,
-  audit_file: nil,
   dry_run: %w[true 1 yes].include?(ENV["IMPORTMAP_DRY_RUN"].to_s.downcase)
 }
 
 OptionParser.new do |opts|
   opts.banner = "Usage: importmap-update [options]"
   opts.on("-c", "--config PATH", "Path to config YAML") { |p| options[:config_path] = p }
-  opts.on("--outdated-file PATH", "Captured `bin/importmap outdated` output") { |p| options[:outdated_file] = p }
-  opts.on("--audit-file PATH", "Captured `bin/importmap audit` output") { |p| options[:audit_file] = p }
   opts.on("--dry-run", "Do not perform side effects; log what would happen") { options[:dry_run] = true }
   opts.on("-h", "--help") {
     puts opts
@@ -55,11 +51,8 @@ rescue Importmap::Update::Config::ConfigError => e
   exit 2
 end
 
-missing = [:outdated_file, :audit_file].select { |k| options[k].nil? }
-unless missing.empty?
-  warn "Missing required option(s): #{missing.map { |k| "--#{k.to_s.tr("_", "-")}" }.join(", ")}"
-  exit 2
-end
+outdated_file = ENV.fetch("IMPORTMAP_OUTDATED_FILE")
+audit_file = ENV.fetch("IMPORTMAP_AUDIT_FILE")
 
 repo = ENV["GITHUB_REPOSITORY"]
 if repo.nil? || repo.empty?
@@ -82,8 +75,8 @@ git = Importmap::Update::GitClient.new(
   author_email: ENV.fetch("IMPORTMAP_AUTHOR_EMAIL", "github-actions[bot]@users.noreply.github.com")
 )
 
-outdated_output = File.read(options[:outdated_file])
-audit_output = File.read(options[:audit_file])
+outdated_output = File.read(outdated_file)
+audit_output = File.read(audit_file)
 outdated = Importmap::Update::Parsers::OutdatedParser.parse(outdated_output)
 vulnerabilities = Importmap::Update::Parsers::AuditParser.parse(audit_output)
 plan = Importmap::Update::Planner.new(

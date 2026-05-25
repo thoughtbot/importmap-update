@@ -20,7 +20,7 @@ jobs:
       - name: Create test Rails app
         run: |
           gem install rails --no-document
-          rails new /tmp/test-app \
+          rails new $RUNNER_TEMP/test-app \
             --skip-git \
             --skip-action-mailer \
             --skip-action-mailbox \
@@ -31,7 +31,7 @@ jobs:
             --skip-bootsnap \
             --skip-test \
             --quiet
-          cd /tmp/test-app
+          cd $RUNNER_TEMP/test-app
           git init
           git add .
           git config user.email "test@example.com"
@@ -40,7 +40,7 @@ jobs:
 
       - name: Pin outdated packages
         run: |
-          cd /tmp/test-app
+          cd $RUNNER_TEMP/test-app
 
           cat >> config/importmap.rb << 'EOF'
 
@@ -58,17 +58,17 @@ jobs:
       - name: Run in dry-run mode
         uses: ./
         env:
-          IMPORTMAP_RUN_LOG: /tmp/dry-run-output.txt
+          IMPORTMAP_RUN_LOG: ${{ runner.temp }}/dry-run-output.txt
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           dry-run: "true"
-          rails-root: /tmp/test-app
+          rails-root: ${{ runner.temp }}/test-app
 
       - name: Assert all outdated packages appear in dry-run output
         run: |
           failed=0
           for pkg in hotkeys-js is-svg just-extend local-time md5 tom-select; do
-            if grep -q "$pkg" /tmp/dry-run-output.txt; then
+            if grep -q "$pkg" $RUNNER_TEMP/dry-run-output.txt; then
               echo "✓ $pkg"
             else
               echo "✗ $pkg not found in output"
