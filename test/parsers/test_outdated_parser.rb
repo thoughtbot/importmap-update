@@ -4,7 +4,7 @@ require_relative "../test_helper"
 require "parsers/outdated_parser"
 
 class OutdatedParserTest < Minitest::Test
-  Parser = Importmap::Update::Parsers::OutdatedParser
+  Parser = ImportmapUpdate::Parsers::OutdatedParser
 
   def test_parses_basic_three_package_output
     result = Parser.parse(fixture("outdated_basic.txt"))

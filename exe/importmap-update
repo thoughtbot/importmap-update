@@ -47,8 +47,8 @@ OptionParser.new do |opts|
 end.parse!
 
 begin
-  config = Importmap::Update::Config.load(options[:config_path])
-rescue Importmap::Update::Config::ConfigError => e
+  config = ImportmapUpdate::Config.load(options[:config_path])
+rescue ImportmapUpdate::Config::ConfigError => e
   warn "Config error: #{e.message}"
   exit 2
 end
@@ -66,24 +66,24 @@ if token.nil? || token.empty?
 end
 
 rails_root = ENV.fetch("RAILS_ROOT", ".")
-runner = Importmap::Update::Commands::ShellRunner.new(cwd: rails_root)
-gh = Importmap::Update::GitHubClient.new(repo:, token:)
-git = Importmap::Update::GitClient.new(
+runner = ImportmapUpdate::Commands::ShellRunner.new(cwd: rails_root)
+gh = ImportmapUpdate::GitHubClient.new(repo:, token:)
+git = ImportmapUpdate::GitClient.new(
   repo: Git.open(rails_root),
   author_name: ENV.fetch("IMPORTMAP_AUTHOR_NAME", "github-actions[bot]"),
   author_email: ENV.fetch("IMPORTMAP_AUTHOR_EMAIL", "github-actions[bot]@users.noreply.github.com")
 )
 
-outdated = Importmap::Update::Parsers::OutdatedParser.parse(ENV.fetch("IMPORTMAP_OUTDATED_OUTPUT"))
-vulnerabilities = Importmap::Update::Parsers::AuditParser.parse(ENV.fetch("IMPORTMAP_AUDIT_OUTPUT"))
-plan = Importmap::Update::Planner.new(
+outdated = ImportmapUpdate::Parsers::OutdatedParser.parse(ENV.fetch("IMPORTMAP_OUTDATED_OUTPUT"))
+vulnerabilities = ImportmapUpdate::Parsers::AuditParser.parse(ENV.fetch("IMPORTMAP_AUDIT_OUTPUT"))
+plan = ImportmapUpdate::Planner.new(
   outdated:, vulnerabilities:, config:
 ).call
 
 existing_prs = gh.list_open_prs(branch_prefix: config.branch_prefix)
-reconciled = Importmap::Update::Reconciler.new(plan:, existing_prs:).call
+reconciled = ImportmapUpdate::Reconciler.new(plan:, existing_prs:).call
 
-executor = Importmap::Update::Executor.new(
+executor = ImportmapUpdate::Executor.new(
   gh:, git:, runner:,
   base_branch: ENV.fetch("IMPORTMAP_BASE_BRANCH", "main"),
   commit_message_prefix: config.commit_message.prefix,

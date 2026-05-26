@@ -4,7 +4,7 @@ require_relative "test_helper"
 require "commands"
 
 class CommandsTest < Minitest::Test
-  Commands = Importmap::Update::Commands
+  Commands = ImportmapUpdate::Commands
 
   # ---- ShellRunner ----
 

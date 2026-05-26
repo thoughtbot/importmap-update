@@ -7,10 +7,10 @@ require "metadata"
 require "config"
 
 class ReconcilerTest < Minitest::Test
-  Reconciler = Importmap::Update::Reconciler
-  Planner = Importmap::Update::Planner
-  Metadata = Importmap::Update::Metadata
-  Config = Importmap::Update::Config
+  Reconciler = ImportmapUpdate::Reconciler
+  Planner = ImportmapUpdate::Planner
+  Metadata = ImportmapUpdate::Metadata
+  Config = ImportmapUpdate::Config
   ExistingPR = Reconciler::ExistingPR
 
   # ---- builder helpers ----

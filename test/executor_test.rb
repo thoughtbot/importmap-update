@@ -6,10 +6,10 @@ require "planner"
 require "reconciler"
 
 class ExecutorTest < Minitest::Test
-  Executor = Importmap::Update::Executor
-  Planner = Importmap::Update::Planner
-  Reconciler = Importmap::Update::Reconciler
-  Commands = Importmap::Update::Commands
+  Executor = ImportmapUpdate::Executor
+  Planner = ImportmapUpdate::Planner
+  Reconciler = ImportmapUpdate::Reconciler
+  Commands = ImportmapUpdate::Commands
 
   # ---- fakes ----
 

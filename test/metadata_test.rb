@@ -4,7 +4,7 @@ require_relative "test_helper"
 require "metadata"
 
 class MetadataTest < Minitest::Test
-  Metadata = Importmap::Update::Metadata
+  Metadata = ImportmapUpdate::Metadata
 
   PLAN_META = {
     tool: "importmap-update",

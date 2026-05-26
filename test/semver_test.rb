@@ -4,7 +4,7 @@ require_relative "test_helper"
 require "semver"
 
 class SemverTest < Minitest::Test
-  include Importmap::Update
+  include ImportmapUpdate
 
   # ---- happy paths
 

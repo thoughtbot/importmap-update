@@ -7,10 +7,10 @@ require "parsers/outdated_parser"
 require "parsers/audit_parser"
 
 class PlannerTest < Minitest::Test
-  Planner = Importmap::Update::Planner
-  Config = Importmap::Update::Config
-  Outdated = Importmap::Update::Parsers::OutdatedParser::OutdatedPackage
-  Vuln = Importmap::Update::Parsers::AuditParser::Vulnerability
+  Planner = ImportmapUpdate::Planner
+  Config = ImportmapUpdate::Config
+  Outdated = ImportmapUpdate::Parsers::OutdatedParser::OutdatedPackage
+  Vuln = ImportmapUpdate::Parsers::AuditParser::Vulnerability
 
   # ---- helpers ----
 

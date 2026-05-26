@@ -5,7 +5,7 @@ require "config"
 require "tempfile"
 
 class ConfigTest < Minitest::Test
-  Config = Importmap::Update::Config
+  Config = ImportmapUpdate::Config
 
   # ---- defaults ----
 

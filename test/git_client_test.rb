@@ -6,7 +6,7 @@ require "git"
 require "git_client"
 
 class GitClientTest < Minitest::Test
-  GitClient = Importmap::Update::GitClient
+  GitClient = ImportmapUpdate::GitClient
 
   AUTHOR_NAME = "Test Bot"
   AUTHOR_EMAIL = "bot@example.com"
