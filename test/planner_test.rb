@@ -15,7 +15,7 @@ class PlannerTest < Minitest::Test
   # ---- helpers ----
 
   def outdated(name, from, to, error: nil)
-    Outdated.new(name:, current: from, latest: to, error:)
+    Outdated.new(name:, current: from, latest_or_error: error || to)
   end
 
   def vuln(name, severity, vulnerable: "<#{name}", advisory: "Vulnerability in #{name}")
