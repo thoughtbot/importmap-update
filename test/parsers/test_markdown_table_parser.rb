@@ -18,8 +18,8 @@ class MarkdownTableParserTest < Minitest::Test
     result = Parser.parse(table)
 
     expected = [
-      { package: "lodash", severity: "high", vulnerable_versions: "<4.17.21", vulnerability: "Prototype Pollution in lodash" },
-      { package: "@hotwired/stimulus", severity: "moderate", vulnerable_versions: "<3.2.2", vulnerability: "ReDoS in stimulus router" }
+      {package: "lodash", severity: "high", vulnerable_versions: "<4.17.21", vulnerability: "Prototype Pollution in lodash"},
+      {package: "@hotwired/stimulus", severity: "moderate", vulnerable_versions: "<3.2.2", vulnerability: "ReDoS in stimulus router"}
     ]
 
     assert_equal expected, result
@@ -38,9 +38,9 @@ class MarkdownTableParserTest < Minitest::Test
     result = Parser.parse(table)
 
     expected = [
-      { package: "@hotwired/stimulus", current: "3.2.1", latest: "3.2.2" },
-      { package: "lodash", current: "4.17.20", latest: "4.17.21" },
-      { package: "react", current: "18.2.0", latest: "19.0.0" }
+      {package: "@hotwired/stimulus", current: "3.2.1", latest: "3.2.2"},
+      {package: "lodash", current: "4.17.20", latest: "4.17.21"},
+      {package: "react", current: "18.2.0", latest: "19.0.0"}
     ]
 
     assert_equal expected, result
