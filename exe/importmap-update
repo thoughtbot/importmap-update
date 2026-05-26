@@ -67,7 +67,7 @@ end
 
 rails_root = ENV.fetch("RAILS_ROOT", ".")
 runner = Importmap::Update::Commands::ShellRunner.new(cwd: rails_root)
-gh = Importmap::Update::GitHubClient.new(repo: repo, token: token)
+gh = Importmap::Update::GitHubClient.new(repo:, token:)
 git = Importmap::Update::GitClient.new(
   repo: Git.open(rails_root),
   author_name: ENV.fetch("IMPORTMAP_AUTHOR_NAME", "github-actions[bot]"),
@@ -77,14 +77,14 @@ git = Importmap::Update::GitClient.new(
 outdated = Importmap::Update::Parsers::OutdatedParser.parse(ENV.fetch("IMPORTMAP_OUTDATED_OUTPUT"))
 vulnerabilities = Importmap::Update::Parsers::AuditParser.parse(ENV.fetch("IMPORTMAP_AUDIT_OUTPUT"))
 plan = Importmap::Update::Planner.new(
-  outdated: outdated, vulnerabilities: vulnerabilities, config: config
+  outdated:, vulnerabilities:, config:
 ).call
 
 existing_prs = gh.list_open_prs(branch_prefix: config.branch_prefix)
-reconciled = Importmap::Update::Reconciler.new(plan: plan, existing_prs: existing_prs).call
+reconciled = Importmap::Update::Reconciler.new(plan:, existing_prs:).call
 
 executor = Importmap::Update::Executor.new(
-  gh: gh, git: git, runner: runner,
+  gh:, git:, runner:,
   base_branch: ENV.fetch("IMPORTMAP_BASE_BRANCH", "main"),
   commit_message_prefix: config.commit_message.prefix,
   labels: config.labels,

@@ -24,7 +24,7 @@ module Importmap
 
       VALID_STRATEGIES = %i[grouped individual].freeze
 
-      Bucket = Struct.new(:strategy, keyword_init: true) do
+      Bucket = Data.define(:strategy) do
         def grouped?
           strategy == :grouped
         end
@@ -34,7 +34,7 @@ module Importmap
         end
       end
 
-      CommitMessage = Struct.new(:prefix, keyword_init: true)
+      CommitMessage = Data.define(:prefix)
 
       attr_reader :version,
         :grouping,
@@ -62,13 +62,13 @@ module Importmap
 
       def to_h
         {
-          version: version,
+          version:,
           grouping: grouping.transform_values { |b| {strategy: b.strategy} },
-          open_pull_requests_limit: open_pull_requests_limit,
-          labels: labels,
-          reviewers: reviewers,
-          commit_message: {prefix: commit_message.prefix},
-          branch_prefix: branch_prefix
+          open_pull_requests_limit:,
+          labels:,
+          reviewers:,
+          branch_prefix:,
+          commit_message: {prefix: commit_message.prefix}
         }
       end
 

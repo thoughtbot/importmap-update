@@ -20,7 +20,7 @@ module Importmap
       # free-form text. If it ever contains a literal `|`, we rejoin the
       # overflow cells so the description survives intact.
       class AuditParser
-        Vulnerability = Struct.new(:name, :severity, :vulnerable_versions, :advisory, keyword_init: true)
+        Vulnerability = Data.define(:name, :severity, :vulnerable_versions, :advisory)
 
         SEVERITIES = %w[low moderate high critical].freeze
 
@@ -62,11 +62,11 @@ module Importmap
         # If a description contained a `|`, cells.size will be >4. Rejoin the
         # tail into the advisory column so we don't lose information.
         def build_row(cells)
-          name, severity, vuln_versions, *advisory_parts = cells
+          name, severity, vulnerable_versions, *advisory_parts = cells
           Vulnerability.new(
-            name: name,
-            severity: severity,
-            vulnerable_versions: vuln_versions,
+            name:,
+            severity:,
+            vulnerable_versions:,
             advisory: advisory_parts.join(" | ")
           )
         end

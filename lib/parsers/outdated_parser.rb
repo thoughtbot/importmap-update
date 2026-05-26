@@ -21,7 +21,7 @@ module Importmap
       # underlying OutdatedPackage. Those rows are returned with `error: ...`
       # set and `latest: nil`, so callers can decide whether to skip them.
       class OutdatedParser
-        OutdatedPackage = Struct.new(:name, :current, :latest, :error, keyword_init: true) do
+        OutdatedPackage = Data.define(:name, :current, :latest, :error) do
           def parseable?
             !latest.nil?
           end
@@ -69,12 +69,11 @@ module Importmap
         end
 
         def build_row(cells)
-          name, current, latest_or_error = cells[0], cells[1], cells[2]
-          if VERSION_SHAPE_RE.match?(latest_or_error)
-            OutdatedPackage.new(name: name, current: current, latest: latest_or_error, error: nil)
-          else
-            OutdatedPackage.new(name: name, current: current, latest: nil, error: latest_or_error)
-          end
+          name, current, latest_or_error = cells
+          latest = latest_or_error if VERSION_SHAPE_RE.match?(latest_or_error)
+          error = latest_or_error unless VERSION_SHAPE_RE.match?(latest_or_error)
+
+          OutdatedPackage.new(name:, current:, latest:, error:)
         end
       end
     end

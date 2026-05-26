@@ -31,7 +31,7 @@ module Importmap
     class Reconciler
       # Input describing an open PR that GitHub returned. Step 5's client
       # will fill these in from the list-PRs API call.
-      ExistingPR = Struct.new(:number, :branch, :body, :title, keyword_init: true)
+      ExistingPR = Data.define(:number, :branch, :body, :title)
 
       Action = Struct.new(:type, :pr_spec, :existing_pr, :reason, keyword_init: true) do
         def open?
@@ -51,7 +51,7 @@ module Importmap
         end
       end
 
-      Result = Struct.new(:actions, :ignored, keyword_init: true) do
+      Result = Data.define(:actions, :ignored) do
         def opens
           actions.select(&:open?)
         end

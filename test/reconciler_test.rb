@@ -16,19 +16,19 @@ class ReconcilerTest < Minitest::Test
   # ---- builder helpers ----
 
   def package_bump(name, from, to, kind: :patch, severity: nil)
-    advisory = severity ? {severity: severity, vulnerable_versions: "<#{to}", description: "..."} : nil
-    Planner::PackageBump.new(name: name, from: from, to: to, semver_kind: kind, advisory: advisory)
+    advisory = severity ? {severity:, vulnerable_versions: "<#{to}", description: "..."} : nil
+    Planner::PackageBump.new(name:, from:, to:, semver_kind: kind, advisory:)
   end
 
   def spec(branch:, packages:, kind: :patch, title: "spec title")
     Planner::PRSpec.new(
-      kind: kind,
-      packages: packages,
-      branch: branch,
-      title: title,
+      kind:,
+      packages:,
+      branch:,
+      title:,
       metadata: {
         tool: "importmap-update",
-        kind: kind,
+        kind:,
         packages: packages.map { |p|
           entry = {name: p.name, from: p.from, to: p.to, semver_kind: p.semver_kind}
           entry[:severity] = p.advisory[:severity] if p.advisory
@@ -48,14 +48,14 @@ class ReconcilerTest < Minitest::Test
     metadata = {
       tool: "importmap-update",
       kind: :patch,
-      packages: packages.map { |(name, from, to)| {name: name, from: from, to: to, semver_kind: :patch} }
+      packages: packages.map { |(name, from, to)| {name:, from:, to:, semver_kind: :patch} }
     }
     body = "Description.\n\n" + Metadata.render(metadata)
-    ExistingPR.new(number: number, branch: branch, body: body, title: title)
+    ExistingPR.new(number:, branch:, body:, title:)
   end
 
   def reconcile(plan_specs:, existing_prs: [])
-    Reconciler.new(plan: plan_with(plan_specs), existing_prs: existing_prs).call
+    Reconciler.new(plan: plan_with(plan_specs), existing_prs:).call
   end
 
   # ---- :open ----
@@ -102,7 +102,7 @@ class ReconcilerTest < Minitest::Test
       package_bump("lodash", "4.17.20", "4.17.21"),
       package_bump("axios", "1.7.0", "1.7.1")
     ]
-    s = spec(branch: "importmap-updates/patch", packages: packages)
+    s = spec(branch: "importmap-updates/patch", packages:)
     existing = existing_pr(
       number: 7,
       branch: "importmap-updates/patch",
@@ -226,7 +226,7 @@ class ReconcilerTest < Minitest::Test
         - { name: lodash, from: 4.17.20, to: 4.17.21 }
       -->
     BODY
-    foreign = ExistingPR.new(number: 60, branch: "importmap-updates/patch", body: body, title: "...")
+    foreign = ExistingPR.new(number: 60, branch: "importmap-updates/patch", body:, title: "...")
     result = reconcile(plan_specs: [], existing_prs: [foreign])
 
     assert_empty result.actions
@@ -334,7 +334,7 @@ class ReconcilerTest < Minitest::Test
         : :
       -->
     BODY
-    pr = ExistingPR.new(number: 70, branch: "importmap-updates/patch", body: body, title: "...")
+    pr = ExistingPR.new(number: 70, branch: "importmap-updates/patch", body:, title: "...")
     result = reconcile(plan_specs: [], existing_prs: [pr])
 
     # Better to leave it alone than to misinterpret and close it.
