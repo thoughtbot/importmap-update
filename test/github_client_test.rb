@@ -5,8 +5,8 @@ require "minitest/mock"
 require "github_client"
 
 class GitHubClientTest < Minitest::Test
-  GitHubClient = Importmap::Update::GitHubClient
-  Reconciler = Importmap::Update::Reconciler
+  GitHubClient = ImportmapUpdate::GitHubClient
+  Reconciler = ImportmapUpdate::Reconciler
 
   REPO = "example-org/example-repo"
 

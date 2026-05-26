@@ -4,7 +4,7 @@ require_relative "../test_helper"
 require "parsers/audit_parser"
 
 class AuditParserTest < Minitest::Test
-  Parser = Importmap::Update::Parsers::AuditParser
+  Parser = ImportmapUpdate::Parsers::AuditParser
 
   def test_parses_basic_audit_output
     result = Parser.parse(fixture("audit_basic.txt"))
