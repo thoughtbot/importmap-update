@@ -11,10 +11,6 @@ class ExecutorTest < Minitest::Test
   Reconciler = ImportmapUpdate::Reconciler
   Commands = ImportmapUpdate::Commands
 
-  # ---- fakes ----
-
-  # Spy GitHubClient that records calls and lets tests configure the PR number
-  # returned by create_pr.
   class FakeGh
     attr_reader :created, :updated, :closed
     attr_accessor :next_pr_number
@@ -47,7 +43,6 @@ class ExecutorTest < Minitest::Test
     end
   end
 
-  # Spy GitClient that records every git operation but does nothing.
   class FakeGit
     attr_reader :checkouts, :commits, :pushes
     attr_accessor :commit_returns
@@ -61,6 +56,7 @@ class ExecutorTest < Minitest::Test
 
     def checkout_fresh_branch(branch:, base:)
       @checkouts << {branch:, base:}
+
       nil
     end
 
@@ -71,14 +67,55 @@ class ExecutorTest < Minitest::Test
 
     def push(branch:, force: false)
       @pushes << {branch:, force:}
+
       nil
     end
   end
 
-  # ---- builders mirroring the planner's output ----
+  class FakeOpen3
+    Fixture = Data.define(:pattern, :output, :exit_code)
+    ProcessStatus = Data.define(:exitstatus)
+
+    attr_reader :calls
+
+    def initialize(fixtures = [])
+      @fixtures = fixtures
+      @calls = []
+    end
+
+    def stub(pattern, output: "", exit_code: 0)
+      @fixtures << Fixture.new(pattern:, output:, exit_code:)
+    end
+
+    def capture2e(*argv, **)
+      @calls << argv
+      match = @fixtures.find { pattern_matches?(_1.pattern, argv) }
+
+      if match.nil?
+        raise "No fixture matched argv: #{argv.inspect}.\nRegistered patterns: #{@fixtures.map(&:pattern).inspect}"
+      end
+
+      [match.output, ProcessStatus.new(exitstatus: match.exit_code)]
+    end
+
+    private
+
+    def pattern_matches?(pattern, argv)
+      return false unless pattern.is_a?(Array)
+      return false unless pattern.size == argv.size
+
+      pattern.zip(argv).all? do |pat, arg|
+        case pat
+        when Regexp then pat.match?(arg)
+        else pat == arg
+        end
+      end
+    end
+  end
 
   def bump(name, from, to, kind: :patch, severity: nil)
     advisory = severity ? {severity:} : nil
+
     Planner::PackageBump.new(name:, from:, to:, semver_kind: kind, advisory:)
   end
 
@@ -99,7 +136,8 @@ class ExecutorTest < Minitest::Test
   def setup
     @gh = FakeGh.new
     @git = FakeGit.new
-    @runner = Commands::FixtureRunner.new
+    @open3 = FakeOpen3.new
+    @runner = Commands::ShellRunner.new(open3: @open3)
   end
 
   def make_executor(dry_run: false)
@@ -109,12 +147,9 @@ class ExecutorTest < Minitest::Test
       commit_message_prefix: "",
       labels: %w[dependencies],
       dry_run:,
-      # Override the body renderer so tests don't depend on the exact body string.
       body_renderer: ->(s) { "body for #{s.branch}" }
     )
   end
-
-  # ---- :noop ----
 
   def test_noop_action_records_success_without_touching_git_or_gh
     s = spec(branch: "importmap-updates/patch", packages: [bump("lodash", "4.17.20", "4.17.21")])
@@ -130,15 +165,13 @@ class ExecutorTest < Minitest::Test
     assert_empty @gh.created
   end
 
-  # ---- :open ----
-
   def test_open_action_pins_pushes_and_creates_pr
     s = spec(
       branch: "importmap-updates/patch",
       packages: [bump("lodash", "4.17.20", "4.17.21")],
       title: "Bump lodash 4.17.20 → 4.17.21"
     )
-    @runner.add(pattern: ["bin/importmap", "pin", "lodash@4.17.21"], stdout: "pinned\n")
+    @open3.stub(["bin/importmap", "pin", "lodash@4.17.21"], output: "pinned\n")
     action = Reconciler::Action.new(type: :open, pr_spec: s)
 
     @gh.next_pr_number = 555
@@ -147,12 +180,10 @@ class ExecutorTest < Minitest::Test
     assert_predicate report.outcomes.first, :success?
     assert_equal 555, report.outcomes.first.pr_number
 
-    # Git operations: checkout fresh, commit, push.
     assert_equal [{branch: "importmap-updates/patch", base: "main"}], @git.checkouts
     assert_equal 1, @git.commits.size
     assert_equal [{branch: "importmap-updates/patch", force: true}], @git.pushes
 
-    # gh create_pr called with planner-provided title and rendered body.
     assert_equal 1, @gh.created.size
     assert_equal "Bump lodash 4.17.20 → 4.17.21", @gh.created.first[:title]
     assert_equal "body for importmap-updates/patch", @gh.created.first[:body]
@@ -160,12 +191,8 @@ class ExecutorTest < Minitest::Test
   end
 
   def test_open_action_skips_pr_creation_when_pinning_produced_no_changes
-    # Race condition: the importmap was updated between the planner's read
-    # and the executor's run, so `bin/importmap pin` is a no-op. The
-    # `git diff --cached --quiet` step returns true; commit_changes returns
-    # false; we abort the open and record a skip.
     s = spec(branch: "importmap-updates/patch", packages: [bump("lodash", "4.17.20", "4.17.21")])
-    @runner.add(pattern: ["bin/importmap", "pin", "lodash@4.17.21"], stdout: "pinned\n")
+    @open3.stub(["bin/importmap", "pin", "lodash@4.17.21"], output: "pinned\n")
     @git.commit_returns = false
 
     report = make_executor.call([Reconciler::Action.new(type: :open, pr_spec: s)])
@@ -175,16 +202,14 @@ class ExecutorTest < Minitest::Test
     assert_empty @git.pushes
   end
 
-  # ---- :force_push ----
-
   def test_force_push_updates_branch_then_edits_pr
     s = spec(
       branch: "importmap-updates/patch",
       packages: [bump("lodash", "4.17.20", "4.17.21"), bump("axios", "1.7.0", "1.7.1")]
     )
     e = existing_pr(number: 42, branch: "importmap-updates/patch")
-    @runner.add(pattern: ["bin/importmap", "pin", "lodash@4.17.21"], stdout: "")
-    @runner.add(pattern: ["bin/importmap", "pin", "axios@1.7.1"], stdout: "")
+    @open3.stub(["bin/importmap", "pin", "lodash@4.17.21"], output: "")
+    @open3.stub(["bin/importmap", "pin", "axios@1.7.1"], output: "")
 
     action = Reconciler::Action.new(type: :force_push, pr_spec: s, existing_pr: e, reason: "axios added")
     report = make_executor.call([action])
@@ -195,8 +220,6 @@ class ExecutorTest < Minitest::Test
     assert_equal 42, @gh.updated.first[:number]
   end
 
-  # ---- :close ----
-
   def test_close_action_closes_pr_with_reason_as_comment
     e = existing_pr(number: 99, branch: "importmap-updates/old")
     action = Reconciler::Action.new(type: :close, existing_pr: e, reason: "no longer outdated")
@@ -206,8 +229,6 @@ class ExecutorTest < Minitest::Test
     assert_predicate report.outcomes.first, :success?
     assert_equal [{number: 99, comment: "no longer outdated"}], @gh.closed
   end
-
-  # ---- dry run ----
 
   def test_dry_run_records_skipped_outcomes_and_invokes_nothing
     s_open = spec(branch: "importmap-updates/patch", packages: [bump("lodash", "4.17.20", "4.17.21")])
@@ -237,19 +258,12 @@ class ExecutorTest < Minitest::Test
     assert_includes fp_outcome.detail, "stim"
   end
 
-  # ---- failure isolation ----
-
   def test_one_failing_action_does_not_block_subsequent_actions
-    # First action will fail (no fixture matching → CommandError); second
-    # should still run cleanly.
     failing = spec(branch: "importmap-updates/patch", packages: [bump("broken", "1.0.0", "2.0.0")])
     succeeding = spec(branch: "importmap-updates/minor", packages: [bump("ok", "1.0.0", "1.1.0", kind: :minor)])
-    # No fixture for "broken" → bin/importmap will raise via FixtureRunner.
-    @runner.add(pattern: ["bin/importmap", "pin", "ok@1.1.0"], stdout: "")
 
-    # Suppress the "no fixture matched" RuntimeError from the FixtureRunner
-    # by registering a failing fixture instead.
-    @runner.add(pattern: ["bin/importmap", "pin", "broken@2.0.0"], stderr: "boom", exit_code: 1)
+    @open3.stub(["bin/importmap", "pin", "ok@1.1.0"], output: "")
+    @open3.stub(["bin/importmap", "pin", "broken@2.0.0"], output: "boom", exit_code: 1)
 
     actions = [
       Reconciler::Action.new(type: :open, pr_spec: failing),
@@ -264,9 +278,6 @@ class ExecutorTest < Minitest::Test
   end
 
   def test_partial_group_failure_keeps_what_was_pinned_successfully
-    # In a grouped PR with three packages, if the second fails but the
-    # first and third succeed, we still want a PR with two packages —
-    # not zero. The executor swallows mid-group failures and continues.
     s = spec(
       branch: "importmap-updates/patch",
       packages: [
@@ -275,9 +286,10 @@ class ExecutorTest < Minitest::Test
         bump("c", "1.0.0", "1.0.1")
       ]
     )
-    @runner.add(pattern: ["bin/importmap", "pin", "a@1.0.1"], stdout: "")
-    @runner.add(pattern: ["bin/importmap", "pin", "b@1.0.1"], stderr: "boom", exit_code: 1)
-    @runner.add(pattern: ["bin/importmap", "pin", "c@1.0.1"], stdout: "")
+
+    @open3.stub(["bin/importmap", "pin", "a@1.0.1"], output: "")
+    @open3.stub(["bin/importmap", "pin", "b@1.0.1"], output: "boom", exit_code: 1)
+    @open3.stub(["bin/importmap", "pin", "c@1.0.1"], output: "")
 
     report = make_executor.call([Reconciler::Action.new(type: :open, pr_spec: s)])
 
