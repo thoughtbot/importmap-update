@@ -11,7 +11,6 @@ class ExecutorTest < Minitest::Test
   Reconciler = ImportmapUpdate::Reconciler
   Commands = ImportmapUpdate::Commands
 
-
   class FakeGh
     attr_reader :created, :updated, :closed
     attr_accessor :next_pr_number
@@ -74,7 +73,7 @@ class ExecutorTest < Minitest::Test
   end
 
   class FakeOpen3
-    Fixture = Data.define(:pattern, :stdout, :stderr, :exit_code)
+    Fixture = Data.define(:pattern, :output, :exit_code)
     ProcessStatus = Data.define(:exitstatus)
 
     attr_reader :calls
@@ -84,11 +83,11 @@ class ExecutorTest < Minitest::Test
       @calls = []
     end
 
-    def add(pattern:, stdout: "", stderr: "", exit_code: 0)
-      @fixtures << Fixture.new(pattern:, stdout:, stderr:, exit_code:)
+    def stub(pattern, output: "", exit_code: 0)
+      @fixtures << Fixture.new(pattern:, output:, exit_code:)
     end
 
-    def capture3(*argv, **)
+    def capture2e(*argv, **)
       @calls << argv
       match = @fixtures.find { pattern_matches?(_1.pattern, argv) }
 
@@ -96,7 +95,7 @@ class ExecutorTest < Minitest::Test
         raise "No fixture matched argv: #{argv.inspect}.\nRegistered patterns: #{@fixtures.map(&:pattern).inspect}"
       end
 
-      [match.stdout, match.stderr, ProcessStatus.new(exitstatus: match.exit_code)]
+      [match.output, ProcessStatus.new(exitstatus: match.exit_code)]
     end
 
     private
@@ -172,7 +171,7 @@ class ExecutorTest < Minitest::Test
       packages: [bump("lodash", "4.17.20", "4.17.21")],
       title: "Bump lodash 4.17.20 → 4.17.21"
     )
-    @open3.add(pattern: ["bin/importmap", "pin", "lodash@4.17.21"], stdout: "pinned\n")
+    @open3.stub(["bin/importmap", "pin", "lodash@4.17.21"], output: "pinned\n")
     action = Reconciler::Action.new(type: :open, pr_spec: s)
 
     @gh.next_pr_number = 555
@@ -193,7 +192,7 @@ class ExecutorTest < Minitest::Test
 
   def test_open_action_skips_pr_creation_when_pinning_produced_no_changes
     s = spec(branch: "importmap-updates/patch", packages: [bump("lodash", "4.17.20", "4.17.21")])
-    @open3.add(pattern: ["bin/importmap", "pin", "lodash@4.17.21"], stdout: "pinned\n")
+    @open3.stub(["bin/importmap", "pin", "lodash@4.17.21"], output: "pinned\n")
     @git.commit_returns = false
 
     report = make_executor.call([Reconciler::Action.new(type: :open, pr_spec: s)])
@@ -209,8 +208,8 @@ class ExecutorTest < Minitest::Test
       packages: [bump("lodash", "4.17.20", "4.17.21"), bump("axios", "1.7.0", "1.7.1")]
     )
     e = existing_pr(number: 42, branch: "importmap-updates/patch")
-    @open3.add(pattern: ["bin/importmap", "pin", "lodash@4.17.21"], stdout: "")
-    @open3.add(pattern: ["bin/importmap", "pin", "axios@1.7.1"], stdout: "")
+    @open3.stub(["bin/importmap", "pin", "lodash@4.17.21"], output: "")
+    @open3.stub(["bin/importmap", "pin", "axios@1.7.1"], output: "")
 
     action = Reconciler::Action.new(type: :force_push, pr_spec: s, existing_pr: e, reason: "axios added")
     report = make_executor.call([action])
@@ -263,8 +262,8 @@ class ExecutorTest < Minitest::Test
     failing = spec(branch: "importmap-updates/patch", packages: [bump("broken", "1.0.0", "2.0.0")])
     succeeding = spec(branch: "importmap-updates/minor", packages: [bump("ok", "1.0.0", "1.1.0", kind: :minor)])
 
-    @open3.add(pattern: ["bin/importmap", "pin", "ok@1.1.0"], stdout: "")
-    @open3.add(pattern: ["bin/importmap", "pin", "broken@2.0.0"], stderr: "boom", exit_code: 1)
+    @open3.stub(["bin/importmap", "pin", "ok@1.1.0"], output: "")
+    @open3.stub(["bin/importmap", "pin", "broken@2.0.0"], output: "boom", exit_code: 1)
 
     actions = [
       Reconciler::Action.new(type: :open, pr_spec: failing),
@@ -288,9 +287,9 @@ class ExecutorTest < Minitest::Test
       ]
     )
 
-    @open3.add(pattern: ["bin/importmap", "pin", "a@1.0.1"], stdout: "")
-    @open3.add(pattern: ["bin/importmap", "pin", "b@1.0.1"], stderr: "boom", exit_code: 1)
-    @open3.add(pattern: ["bin/importmap", "pin", "c@1.0.1"], stdout: "")
+    @open3.stub(["bin/importmap", "pin", "a@1.0.1"], output: "")
+    @open3.stub(["bin/importmap", "pin", "b@1.0.1"], output: "boom", exit_code: 1)
+    @open3.stub(["bin/importmap", "pin", "c@1.0.1"], output: "")
 
     report = make_executor.call([Reconciler::Action.new(type: :open, pr_spec: s)])
 

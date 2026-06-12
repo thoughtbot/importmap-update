@@ -5,7 +5,7 @@ require "json"
 
 module ImportmapUpdate
   module Commands
-    Result = Data.define(:stdout, :stderr, :exit_code) do
+    Result = Data.define(:output, :exit_code) do
       def success?
         exit_code == 0
       end
@@ -17,7 +17,7 @@ module ImportmapUpdate
       def initialize(argv, result)
         @argv = argv
         @result = result
-        super("`#{argv.join(" ")}` exited #{result.exit_code}: #{result.stderr.strip}")
+        super("`#{argv.join(" ")}` exited #{result.exit_code}: #{result.output.strip}")
       end
     end
 
@@ -31,8 +31,8 @@ module ImportmapUpdate
         opts = {}
         opts[:chdir] = @cwd if @cwd
         Bundler.with_unbundled_env do
-          stdout, stderr, status = @open3.capture3(*argv, **opts)
-          Result.new(stdout:, stderr:, exit_code: status.exitstatus)
+          output, status = @open3.capture2e(*argv, **opts)
+          Result.new(output:, exit_code: status.exitstatus)
         end
       end
     end
