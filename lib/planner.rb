@@ -231,7 +231,7 @@ module ImportmapUpdate
         kind:,
         packages: bumps.map { |b|
           entry = {name: b.name, from: b.from, to: b.to, semver_kind: b.semver_kind}
-          entry[:severity] = b.advisory[:severity] if b.advisory
+          entry[:severity] = b.advisory[:severity].to_s if b.advisory
           entry
         }
       }
