@@ -10,7 +10,6 @@ class GitClientTest < Minitest::Test
 
   AUTHOR_NAME = "Test Bot"
   AUTHOR_EMAIL = "bot@example.com"
-  AUTHOR_STRING = "Test Bot <bot@example.com>"
 
   def setup
     @repo = Minitest::Mock.new
@@ -44,14 +43,17 @@ class GitClientTest < Minitest::Test
 
   def test_commit_changes_stages_and_commits_returning_true
     @repo.expect(:add, nil, [["config/importmap.rb", "vendor/javascript"]])
-    @repo.expect(:commit, nil, ["Bump lodash from 4.17.20 to 4.17.21"],
-      author: AUTHOR_STRING)
+    @repo.expect(:config, nil, ["user.name", AUTHOR_NAME])
+    @repo.expect(:config, nil, ["user.email", AUTHOR_EMAIL])
+    @repo.expect(:commit, nil, ["Bump lodash from 4.17.20 to 4.17.21"])
 
     assert_equal true, @client.commit_changes(message: "Bump lodash from 4.17.20 to 4.17.21")
   end
 
   def test_commit_changes_returns_false_when_nothing_to_commit
     @repo.expect(:add, nil, [["config/importmap.rb", "vendor/javascript"]])
+    @repo.expect(:config, nil, ["user.name", AUTHOR_NAME])
+    @repo.expect(:config, nil, ["user.email", AUTHOR_EMAIL])
     @repo.expect(:commit, nil) do |_msg, **_opts|
       raise git_failed_error("nothing to commit, working tree clean")
     end
@@ -61,6 +63,8 @@ class GitClientTest < Minitest::Test
 
   def test_commit_changes_re_raises_unexpected_git_errors
     @repo.expect(:add, nil, [["config/importmap.rb", "vendor/javascript"]])
+    @repo.expect(:config, nil, ["user.name", AUTHOR_NAME])
+    @repo.expect(:config, nil, ["user.email", AUTHOR_EMAIL])
     @repo.expect(:commit, nil) do |_msg, **_opts|
       raise git_failed_error("lock file exists")
     end

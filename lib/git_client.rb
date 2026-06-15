@@ -37,8 +37,10 @@ module ImportmapUpdate
     # Returns true iff a commit was actually created; false when
     # bin/importmap pin was a no-op and there is nothing to commit.
     def commit_changes(message:)
+      @repo.config("user.name", @author_name)
+      @repo.config("user.email", @author_email)
       @repo.add(["config/importmap.rb", "vendor/javascript"])
-      @repo.commit(message, author: "#{@author_name} <#{@author_email}>")
+      @repo.commit(message)
       true
     rescue Git::FailedError => e
       return false if e.result.stderr.to_s.include?("nothing to commit")
