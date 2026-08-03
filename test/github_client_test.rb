@@ -88,19 +88,19 @@ class GitHubClientTest < Minitest::Test
 
   def test_ensure_labels_creates_missing_labels
     @octokit.expect(:labels, [label_stub("dependencies")], [REPO])
-    @octokit.expect(:create_label, nil, [REPO, "javascript", "0075ca"])
+    @octokit.expect(:add_label, nil, [REPO, "javascript", "0075ca"])
     @client.ensure_labels(%w[dependencies javascript])
   end
 
   def test_ensure_labels_skips_labels_that_already_exist
     @octokit.expect(:labels, [label_stub("dependencies"), label_stub("javascript")], [REPO])
-    # No create_label calls expected.
+    # No add_label calls expected.
     @client.ensure_labels(%w[dependencies javascript])
   end
 
   def test_ensure_labels_tolerates_labels_list_failure
     @octokit.expect(:labels, nil) { |_repo| raise Octokit::Error }
-    @octokit.expect(:create_label, nil, [REPO, "dependencies", "0075ca"])
+    @octokit.expect(:add_label, nil, [REPO, "dependencies", "0075ca"])
     @client.ensure_labels(%w[dependencies])
   end
 
