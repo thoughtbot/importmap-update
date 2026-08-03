@@ -55,7 +55,7 @@ module ImportmapUpdate
       existing = list_label_names
       labels.each do |label|
         next if existing.include?(label)
-        @client.create_label(@repo, label, "0075ca")
+        @client.add_label(@repo, label, "0075ca")
       end
     end
 
