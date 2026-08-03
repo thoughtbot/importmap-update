@@ -61,6 +61,17 @@ class GitClientTest < Minitest::Test
     assert_equal false, @client.commit_changes(message: "irrelevant")
   end
 
+  def test_commit_changes_returns_false_when_nothing_to_commit_on_stdout
+    @repo.expect(:add, nil, [["config/importmap.rb", "vendor/javascript"]])
+    @repo.expect(:config, nil, ["user.name", AUTHOR_NAME])
+    @repo.expect(:config, nil, ["user.email", AUTHOR_EMAIL])
+    @repo.expect(:commit, nil) do |_msg, **_opts|
+      raise git_failed_error("", "nothing to commit, working tree clean")
+    end
+
+    assert_equal false, @client.commit_changes(message: "irrelevant")
+  end
+
   def test_commit_changes_re_raises_unexpected_git_errors
     @repo.expect(:add, nil, [["config/importmap.rb", "vendor/javascript"]])
     @repo.expect(:config, nil, ["user.name", AUTHOR_NAME])
@@ -90,9 +101,9 @@ class GitClientTest < Minitest::Test
 
   # Git::FailedError wraps a Git::CommandLineResult which needs a status
   # object. We build the minimum required for e.result.stderr to work.
-  def git_failed_error(stderr)
+  def git_failed_error(stderr, stdout = "")
     fake_status = Struct.new(:exitstatus, :pid) { def to_s = "pid #{pid} exit #{exitstatus}" }.new(1, 0)
-    result = Git::CommandLineResult.new(["git", "commit"], fake_status, "", stderr)
+    result = Git::CommandLineResult.new(["git", "commit"], fake_status, stdout, stderr)
     Git::FailedError.new(result)
   end
 end
