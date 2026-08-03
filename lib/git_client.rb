@@ -43,7 +43,9 @@ module ImportmapUpdate
       @repo.commit(message)
       true
     rescue Git::FailedError => e
-      return false if e.result.stderr.to_s.include?("nothing to commit")
+      # git prints "nothing to commit" to stdout; check both streams so a
+      # no-op pin is treated as a skip rather than a hard failure.
+      return false if "#{e.result.stdout} #{e.result.stderr}".include?("nothing to commit")
       raise
     end
 
