@@ -35,6 +35,7 @@ options = {
   config_path: ENV.fetch("INPUT_CONFIG_FILE", ".github/importmap-updates.yml"),
   dry_run: %w[true 1 yes].include?(ENV["IMPORTMAP_DRY_RUN"].to_s.downcase)
 }
+rails_root = ENV.fetch("RAILS_ROOT", ".")
 
 OptionParser.new do |opts|
   opts.banner = "Usage: importmap-update [options]"
@@ -47,7 +48,7 @@ OptionParser.new do |opts|
 end.parse!
 
 begin
-  config = ImportmapUpdate::Config.load(options[:config_path])
+  config = ImportmapUpdate::Config.load(options[:config_path], relative_to: rails_root)
 rescue ImportmapUpdate::Config::ConfigError => e
   warn "Config error: #{e.message}"
   exit 2
@@ -65,7 +66,6 @@ if token.nil? || token.empty?
   exit 2
 end
 
-rails_root = ENV.fetch("RAILS_ROOT", ".")
 runner = ImportmapUpdate::Commands::ShellRunner.new(cwd: rails_root)
 gh = ImportmapUpdate::GitHubClient.new(repo:, token:)
 git = ImportmapUpdate::GitClient.new(
