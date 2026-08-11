@@ -2,7 +2,9 @@
 
 require_relative "test_helper"
 require "config"
+require "fileutils"
 require "tempfile"
+require "tmpdir"
 
 class ConfigTest < Minitest::Test
   Config = ImportmapUpdate::Config
@@ -51,6 +53,26 @@ class ConfigTest < Minitest::Test
       f.flush
       config = Config.load(f.path)
       assert_equal Config.default.to_h, config.to_h
+    end
+  end
+
+  def test_relative_path_can_be_loaded_from_explicit_base_directory
+    Dir.mktmpdir do |repo_dir|
+      FileUtils.mkdir_p(File.join(repo_dir, ".github"))
+      File.write(File.join(repo_dir, ".github", "importmap-updates.yml"), <<~YAML)
+        version: 1
+        grouping:
+          patch:
+            strategy: individual
+      YAML
+
+      Dir.mktmpdir do |action_dir|
+        Dir.chdir(action_dir) do
+          config = Config.load(".github/importmap-updates.yml", relative_to: repo_dir)
+
+          assert_equal :individual, config.grouping[:patch].strategy
+        end
+      end
     end
   end
 

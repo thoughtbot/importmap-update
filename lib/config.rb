@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "yaml"
+require "pathname"
 
 module ImportmapUpdate
   # Loads and validates the YAML config file for the action.
@@ -45,7 +46,8 @@ module ImportmapUpdate
 
     # ---- public construction ----
 
-    def self.load(path)
+    def self.load(path, relative_to: nil)
+      path = resolve_path(path, relative_to:)
       raw = if path && File.exist?(path)
         YAML.safe_load_file(path, permitted_classes: [], aliases: false) || {}
       else
@@ -223,6 +225,12 @@ module ImportmapUpdate
           override_val
         end
       end
+    end
+
+    def self.resolve_path(path, relative_to:)
+      return path if path.nil? || relative_to.nil? || Pathname.new(path).absolute?
+
+      File.expand_path(path, relative_to)
     end
   end
 end
