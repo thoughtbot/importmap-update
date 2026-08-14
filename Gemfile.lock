@@ -28,7 +28,7 @@ GEM
       logger
     faraday-net_http (3.4.3)
       net-http (~> 0.5)
-    git (4.4.0)
+    git (5.0.1)
       activesupport (>= 5.0)
       addressable (~> 2.8)
       process_executer (~> 4.0)
@@ -111,7 +111,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  git (~> 4.4)
+  git (~> 5.0)
   minitest
   minitest-mock (~> 5.27)
   octokit
