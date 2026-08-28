@@ -7,8 +7,8 @@ according to a configurable grouping strategy, and reconciles its own PRs
 across runs (force-pushing when versions move, closing when packages are
 no longer outdated).
 
-Dependabot does not support importmap-rails natively. Neither does Renovate.
-This action fills that gap.
+Neither Dependabot nor Renovate supports importmap-rails natively, so this
+action covers that case.
 
 ## Quick start
 
@@ -48,9 +48,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-That's enough to get going with the baked-in defaults. For first-time use,
-set `dry-run: "true"` so you can review the action's log and see exactly
-what it _would_ do before flipping the switch.
+The defaults are sufficient for most projects. For first-time use, set
+`dry-run: "true"` and review the action's log to confirm what the action
+will do.
 
 ## Configuration
 
@@ -74,8 +74,8 @@ branch_prefix: "importmap-updates"
 
 All fields are optional. Missing fields fall back to defaults. Both
 underscore and dash key styles are accepted (so
-`open-pull-requests-limit` works too — convenient if you're coming from
-Dependabot's config).
+`open-pull-requests-limit` works too, which is convenient if you're
+coming from Dependabot's config).
 
 ### Grouping strategies
 
@@ -85,8 +85,8 @@ per package).
 
 Security always takes priority over the semver bucket: a vulnerable
 package that happens to be a major bump becomes a **security** PR, not a
-major PR — but the PR body and metadata still record that it's a major
-bump so reviewers know to expect breaking changes.
+major PR. The PR body and metadata still record that it's a major bump,
+so reviewers know to expect breaking changes.
 
 ### Open-PR budget
 
@@ -98,9 +98,9 @@ PRs are kept in priority order major → minor → patch.
 
 - **Foreign PRs are never touched.** A PR on a branch matching the
   configured prefix but without the action's metadata block is left
-  alone — never closed, edited, or force-pushed. A human who manually
+  alone: never closed, edited, or force-pushed. A human who manually
   creates a PR on the `importmap-updates/*` namespace will not have
-  their work clobbered.
+  their work overwritten.
 - **Dry-run mode.** Set `dry-run: "true"` to run end-to-end without
   side effects. Every action is reported in the workflow log.
 - **Branch ownership via embedded metadata.** Every PR the action opens
