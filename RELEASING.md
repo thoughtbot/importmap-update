@@ -11,12 +11,9 @@
 
 This action follows [Semantic Versioning]. The major version tag (e.g. `v1`) is kept pointing at the latest patch release in that series so consumers who pin `thoughtbot/importmap-update@v1` get updates automatically.
 
-After tagging `v1.x.x`, move the floating tag:
+The [Major version tag workflow](.github/workflows/major-version-tag.yml) moves it automatically when a non-prerelease release is published, so step 5 above is the last manual step.
 
-```
-git tag -f v1
-git push --force origin v1
-```
+Do not create a GitHub release for the `v1` tag. Releases in this repo are immutable, and attaching one would freeze the tag in place.
 
 [Semantic Versioning]: https://semver.org
 
