@@ -2,7 +2,7 @@ source "https://rubygems.org"
 ruby ">= 3.2"
 
 gem "octokit"
-gem "git", "~> 5.5"
+gem "git", "~> 5.6"
 
 group :development, :test do
   gem "rake"
